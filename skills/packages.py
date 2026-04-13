@@ -1,43 +1,44 @@
 """
-/synology-packages — List installed packages, flag outdated ones.
-API: SYNO.Core.Package
+/synology-packages — List all installed packages with version and type.
+Usage: python skills/packages.py [--filter <text>]
 """
 
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import requests
-from lib.auth import get_session, logout
-
-
-def list_packages(host, sid):
-    resp = requests.get(
-        f"{host}/webapi/entry.cgi",
-        params={
-            "api": "SYNO.Core.Package",
-            "version": "2",
-            "method": "list",
-            "additional": '["description","description_enu","dependent_packages","beta","distributor","distributor_url","maintainer","maintainer_url","dsm_apps","ds_app","report_beta_url","support_center","startable","installed_info","install_type","autoupdate","silent_upgrade"]',
-            "_sid": sid,
-        },
-        verify=False,
-    )
-    return resp.json()
+from lib.auth import get_session, logout, api_get
 
 
 def main():
+    filter_text = None
+    if "--filter" in sys.argv:
+        idx = sys.argv.index("--filter")
+        filter_text = sys.argv[idx + 1].lower()
+
     host, sid = get_session()
     try:
-        data = list_packages(host, sid)
+        data = api_get(host, sid, "SYNO.Core.Package", "1", "list",
+                       additional='["install_type"]')
         packages = data.get("data", {}).get("packages", [])
+
+        if filter_text:
+            packages = [p for p in packages if filter_text in p.get("name", "").lower()
+                        or filter_text in p.get("id", "").lower()]
+
+        packages = sorted(packages, key=lambda p: p.get("name", "").lower())
+
         print(f"=== Installed Packages ({len(packages)}) ===\n")
-        # TODO: flag outdated, format table
-        for pkg in sorted(packages, key=lambda p: p.get("name", "")):
-            name = pkg.get("name", "?")
+        print(f"  {'NAME':<40} {'VERSION':<25} TYPE")
+        print("  " + "-" * 75)
+        for pkg in packages:
+            name    = pkg.get("name", "?")
             version = pkg.get("version", "?")
-            status = pkg.get("status", "?")
-            print(f"  {name:<40} {version:<20} {status}")
+            itype   = pkg.get("additional", {}).get("install_type", "") or "user"
+            print(f"  {name:<40} {version:<25} {itype}")
+
+        print()
+
     finally:
         logout(host, sid)
 

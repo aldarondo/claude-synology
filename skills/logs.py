@@ -1,54 +1,63 @@
 """
-/synology-logs [--severity error|warning|info] [--lines N] — View system and security logs.
-API: SYNO.Core.Log.Viewer
+/synology-logs [--level error|warning|info] [--lines N] [--type system|connection|file]
+View DSM system logs.
 """
 
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import requests
-from lib.auth import get_session, logout
+from lib.auth import get_session, logout, api_get
 
-
-SEVERITY_MAP = {"error": 3, "warning": 2, "info": 1}
-
-
-def get_logs(host, sid, severity=None, lines=50):
-    params = {
-        "api": "SYNO.Core.Log.Viewer",
-        "version": "1",
-        "method": "list",
-        "limit": lines,
-        "_sid": sid,
-    }
-    if severity and severity in SEVERITY_MAP:
-        params["level"] = SEVERITY_MAP[severity]
-    resp = requests.get(f"{host}/webapi/entry.cgi", params=params, verify=False)
-    return resp.json()
+LEVEL_COLORS = {"err": "!!", "warning": "! ", "info": "  "}
 
 
 def main():
-    severity = None
+    level = None
     lines = 50
-    if "--severity" in sys.argv:
-        idx = sys.argv.index("--severity")
-        severity = sys.argv[idx + 1]
-    if "--lines" in sys.argv:
-        idx = sys.argv.index("--lines")
-        lines = int(sys.argv[idx + 1])
+    logtype = None
+
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        if args[i] == "--level" and i + 1 < len(args):
+            level = args[i + 1]; i += 2
+        elif args[i] == "--lines" and i + 1 < len(args):
+            lines = int(args[i + 1]); i += 2
+        elif args[i] == "--type" and i + 1 < len(args):
+            logtype = args[i + 1]; i += 2
+        else:
+            i += 1
 
     host, sid = get_session()
     try:
-        data = get_logs(host, sid, severity, lines)
-        entries = data.get("data", {}).get("items", [])
-        label = f"severity={severity}" if severity else "all"
-        print(f"=== System Logs ({label}, last {lines}) ===\n")
-        for entry in entries:
-            time = entry.get("time", "")
-            level = entry.get("level", "")
-            msg = entry.get("description", "")
-            print(f"  [{time}] [{level}] {msg}")
+        params = dict(limit=lines, offset=0)
+        if level:
+            params["level"] = level
+        if logtype:
+            params["logtype"] = logtype
+
+        data = api_get(host, sid, "SYNO.Core.SyslogClient.Log", "1", "list", **params)
+        items      = data.get("data", {}).get("items", [])
+        err_count  = data.get("data", {}).get("errorCount", 0)
+        info_count = data.get("data", {}).get("infoCount", 0)
+
+        label = f"level={level}" if level else "all levels"
+        print(f"=== System Logs ({label}, last {lines}) — {err_count} errors, {info_count} info ===\n")
+        print(f"  {'TIME':<22} {'LEVEL':<10} {'TYPE':<12} {'USER':<12} MESSAGE")
+        print("  " + "-" * 95)
+
+        for entry in items:
+            time  = entry.get("time", "?")
+            lvl   = entry.get("level", "?")
+            ltype = entry.get("logtype", "?")
+            who   = entry.get("who", "?")
+            descr = entry.get("descr", "?")
+            marker = LEVEL_COLORS.get(lvl, "·")
+            print(f"  {marker} {time:<21} {lvl:<10} {ltype:<12} {who:<12} {descr}")
+
+        print()
+
     finally:
         logout(host, sid)
 
