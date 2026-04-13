@@ -5,9 +5,14 @@
 
 ## 🔲 Backlog
 
-### Known Limitations
-- [ ] `[Human]` Hyper Backup not installed — install from Package Center to enable `/synology-backup-status`
-- [ ] `[Cowork]` Docker logs (error 114) — DSM Container Manager 24.x does not expose log streaming via HTTP API for Compose containers. Research alternative solutions: SSH-based log access, Synology Task Scheduler scripts, log forwarding to a syslog endpoint, or other DSM API paths that may expose container logs.
+### Cowork Research Tasks
+- [ ] `[Cowork]` **Docker container logs** — `SYNO.Docker.Container.Log` returns error 114 for all Compose containers on Container Manager 24.x. Research: SSH-based `docker logs` access, Task Scheduler script workaround, syslog forwarding, or undocumented API paths in Container Manager 24.x that expose log streaming.
+- [ ] `[Cowork]` **Docker image pull** — `SYNO.Docker.Image pull` method not found (error 103) via HTTP API on Container Manager 24.x. Research: correct API path/method for pulling images programmatically, or whether it was moved to a different namespace in Container Manager 24.x.
+- [ ] `[Cowork]` **DSM upgrade trigger** — `SYNO.Core.Upgrade upgrade` method not found (error 103). Download step (`SYNO.Core.Upgrade.Server.Download v2 start`) exists but needs correct params (currently error 101 = invalid param). Research: correct two-step download+install flow and required parameters for triggering a DSM upgrade via the HTTP API.
+- [ ] `[Cowork]` **Package install from catalog** — `SYNO.Core.Package.Installation install` returns error 120 for any package not pre-staged. Research: whether the Package Center catalog can be browsed and packages installed via API without a MyDS account session, or if there's a workaround using package feed URLs.
+
+### Human Tasks
+- [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `/synology-backup-status`
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
@@ -27,7 +32,10 @@
 - 2026-04-13 `[Code]` `/synology-docker-pull` — list local images; pull via API (fallback to UI instructions)
 - 2026-04-13 `[Code]` `/synology-upgrade-package` — lists user packages; triggers upgrade with YES confirmation (error 4501 = already up to date)
 - 2026-04-13 `[Code]` `/synology-install-package` — triggers install with YES confirmation; graceful fallback if package unavailable via API
-- 2026-04-13 `[Code]` `/synology-dsm-upgrade` — checks for update first, requires YES confirmation, warns about NAS reboot
+- 2026-04-13 `[Code]` `/synology-dsm-upgrade` — checks for update first, requires YES confirmation, warns about NAS reboot (trigger method broken — Cowork task)
+- 2026-04-13 `[Code]` `tests/integration.py` — 19/19 passing; covers all read APIs, write method existence, and documents 3 known-broken skips
+- 2026-04-13 `[Code]` `/synology-docker-pull` — fixed image list (limit/offset), shows upgradable flag; pull remains UI-only (Cowork task)
+- 2026-04-13 `[Code]` `/synology-install-package` — moved to Cowork research backlog
 
 ## 🚫 Blocked
 <!-- log blockers here -->
