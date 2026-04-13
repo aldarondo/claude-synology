@@ -5,17 +5,9 @@
 
 ## 🔲 Backlog
 
-### Remaining Skills (stubs written, need testing/polish)
-- [ ] `[Code]` `/synology-upgrade-package` — upgrade one or all outdated packages
-- [ ] `[Code]` `/synology-install-package` — search Package Center and install
-- [ ] `[Code]` `/synology-dsm-upgrade` — trigger DSM upgrade with confirmation gate
-- [ ] `[Code]` `/synology-docker-start` — start a stopped container by name
-- [ ] `[Code]` `/synology-docker-stop` — stop a running container by name
-- [ ] `[Code]` `/synology-docker-logs` — tail recent logs from a container
-- [ ] `[Code]` `/synology-docker-pull` — pull/update an image
-
 ### Known Limitations
-- [ ] `[Code]` Hyper Backup not installed — backup_status falls back to config backup only
+- [ ] `[Human]` Hyper Backup not installed — install from Package Center to enable `/synology-backup-status`
+- [ ] `[Code]` Docker logs (error 114) — DSM Container Manager 24.x does not expose log streaming via HTTP API for Compose containers; view logs in DSM UI instead
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
@@ -28,7 +20,14 @@
 - 2026-04-13 `[Code]` `/synology-logs` — syslog with level/type filters
 - 2026-04-13 `[Code]` `/synology-users` — 12 users listed
 - 2026-04-13 `[Code]` `/synology-dsm-check` — shows installed version, live update check, auto-upgrade setting
-- 2026-04-13 `[Code]` Register 9 commands in `~/.claude/commands/` — `/synology`, `/synology-status`, `/synology-packages`, `/synology-dsm-check`, `/synology-docker`, `/synology-storage`, `/synology-logs`, `/synology-users`, `/synology-backup-status`
+- 2026-04-13 `[Code]` Register 16 commands in `~/.claude/commands/` — all read and write synology skills
+- 2026-04-13 `[Code]` `/synology-docker-start` — verified working, guards against starting already-running containers
+- 2026-04-13 `[Code]` `/synology-docker-stop` — verified working, requires YES confirmation
+- 2026-04-13 `[Code]` `/synology-docker-logs` — graceful fallback (API unsupported for Compose containers)
+- 2026-04-13 `[Code]` `/synology-docker-pull` — list local images; pull via API (fallback to UI instructions)
+- 2026-04-13 `[Code]` `/synology-upgrade-package` — lists user packages; triggers upgrade with YES confirmation (error 4501 = already up to date)
+- 2026-04-13 `[Code]` `/synology-install-package` — triggers install with YES confirmation; graceful fallback if package unavailable via API
+- 2026-04-13 `[Code]` `/synology-dsm-upgrade` — checks for update first, requires YES confirmation, warns about NAS reboot
 
 ## 🚫 Blocked
 <!-- log blockers here -->
