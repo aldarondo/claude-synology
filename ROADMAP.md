@@ -32,9 +32,3 @@
 
 ## 🚫 Blocked
 <!-- log blockers here -->
-
-## ✅ Completed
-<!-- dated entries go here -->
-
-## 🚫 Blocked
-<!-- log blockers here -->
