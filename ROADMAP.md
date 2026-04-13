@@ -2,7 +2,6 @@
 > Tag key: `[Code]` = Claude Code · `[Cowork]` = Claude Cowork · `[Human]` = Charles must act
 
 ## 🔄 In Progress
-- [ ] `[Code]` Register skills in `~/.claude/` so they're invocable as `/synology-*` slash commands
 
 ## 🔲 Backlog
 
@@ -29,6 +28,7 @@
 - 2026-04-13 `[Code]` `/synology-logs` — syslog with level/type filters
 - 2026-04-13 `[Code]` `/synology-users` — 12 users listed
 - 2026-04-13 `[Code]` `/synology-dsm-check` — shows installed version, live update check, auto-upgrade setting
+- 2026-04-13 `[Code]` Register 9 commands in `~/.claude/commands/` — `/synology`, `/synology-status`, `/synology-packages`, `/synology-dsm-check`, `/synology-docker`, `/synology-storage`, `/synology-logs`, `/synology-users`, `/synology-backup-status`
 
 ## 🚫 Blocked
 <!-- log blockers here -->
