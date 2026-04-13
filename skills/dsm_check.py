@@ -23,20 +23,21 @@ def main():
         print(f"  Firmware:   {i.get('firmware_date', '?')}")
 
         # Check update server
-        upgrade = api_get(host, sid, "SYNO.Core.Upgrade.Server", "4", "getinfo")
+        upgrade = api_get(host, sid, "SYNO.Core.Upgrade.Server", "4", "check")
         if upgrade.get("success"):
-            ud = upgrade.get("data", {})
-            available = ud.get("has_avail_version", False)
+            update = upgrade.get("data", {}).get("update", {})
+            available = update.get("available", False)
             if available:
-                new_ver = ud.get("version", "unknown")
+                new_ver = update.get("version", "unknown")
                 print(f"\n  !!  Update available: {new_ver}")
-                print(f"      Release notes:    {ud.get('release_notes_url', 'n/a')}")
+                notes = update.get("release_notes_url") or update.get("releaseNote", "")
+                if notes:
+                    print(f"      Release notes: {notes}")
             else:
                 print(f"\n  OK  DSM is up to date.")
         else:
             code = upgrade.get("error", {}).get("code", "?")
-            print(f"\n  Update check unavailable (error {code}).")
-            print("  Note: This may require admin access via HTTPS (port 5001).")
+            print(f"\n  Update check failed (error {code}).")
 
         # Auto-upgrade settings
         setting = api_get(host, sid, "SYNO.Core.Upgrade.Setting", "4", "get")

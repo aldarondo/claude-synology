@@ -16,7 +16,6 @@
 - [ ] `[Code]` `/synology-docker-pull` — pull/update an image
 
 ### Known Limitations
-- [ ] `[Human]` DSM update check (SYNO.Core.Upgrade.Server) returns error 103 — may need HTTPS port 5001 or different admin permissions. Investigate.
 - [ ] `[Code]` Hyper Backup not installed — backup_status falls back to config backup only
 
 ## ✅ Completed
@@ -29,7 +28,7 @@
 - 2026-04-13 `[Code]` `/synology-storage` — 2 volumes, 2 RAID5 pools, 9 disks with temps and SMART
 - 2026-04-13 `[Code]` `/synology-logs` — syslog with level/type filters
 - 2026-04-13 `[Code]` `/synology-users` — 12 users listed
-- 2026-04-13 `[Code]` `/synology-dsm-check` — shows installed version + auto-upgrade setting
+- 2026-04-13 `[Code]` `/synology-dsm-check` — shows installed version, live update check, auto-upgrade setting
 
 ## 🚫 Blocked
 <!-- log blockers here -->
