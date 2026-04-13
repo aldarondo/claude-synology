@@ -7,7 +7,7 @@
 
 ### Known Limitations
 - [ ] `[Human]` Hyper Backup not installed — install from Package Center to enable `/synology-backup-status`
-- [ ] `[Code]` Docker logs (error 114) — DSM Container Manager 24.x does not expose log streaming via HTTP API for Compose containers; view logs in DSM UI instead
+- [ ] `[Cowork]` Docker logs (error 114) — DSM Container Manager 24.x does not expose log streaming via HTTP API for Compose containers. Research alternative solutions: SSH-based log access, Synology Task Scheduler scripts, log forwarding to a syslog endpoint, or other DSM API paths that may expose container logs.
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
