@@ -11,8 +11,15 @@
 - [ ] `[Cowork]` **DSM upgrade trigger** — `SYNO.Core.Upgrade upgrade` method not found (error 103). Download step (`SYNO.Core.Upgrade.Server.Download v2 start`) exists but needs correct params (currently error 101 = invalid param). Research: correct two-step download+install flow and required parameters for triggering a DSM upgrade via the HTTP API.
 - [ ] `[Cowork]` **Package install from catalog** — `SYNO.Core.Package.Installation install` returns error 120 for any package not pre-staged. Research: whether the Package Center catalog can be browsed and packages installed via API without a MyDS account session, or if there's a workaround using package feed URLs.
 
+### SSH Skill Layer (new capability needed)
+- [ ] `[Code]` Add `lib/ssh.py` — paramiko-based SSH client, loads host/user/key from config.json
+- [ ] `[Code]` `/synology-ssh` skill — run arbitrary shell commands on the NAS via SSH (confirmation gate for destructive ops)
+- [ ] `[Code]` `/synology-docker-compose` skill — SSH-based: `docker compose up -d`, `down`, `pull`, `logs` in a given path
+- [ ] `[Code]` `/synology-deploy` skill — SSH-based: clone/pull a repo to a target path and docker compose up
+
 ### Human Tasks
 - [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `/synology-backup-status`
+- [ ] `[Human]` Enable SSH on NAS: DSM > Control Panel > Terminal & SNMP > Enable SSH service (needed for SSH skill layer above)
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
