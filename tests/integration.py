@@ -152,11 +152,19 @@ def run():
         check("dsm upgrade download",   "WRITE", host, sid, "SYNO.Core.Upgrade.Server.Download", "2", "start",
               expect_error=101)   # 101 = invalid param = method exists, params unknown
 
-        # ── WRITE: Docker Logs (known broken) ─────────────────────────────────
-        print("--- Write: Docker Logs (known broken) ---")
-        skip("container logs",     "ROADMAP: Cowork research task — Container Manager 24.x API limitation")
-        skip("docker image pull",  "ROADMAP: Cowork research task — pull method not found in HTTP API")
-        skip("package install UI", "ROADMAP: Cowork research task — Package Center catalog requires MyDS session")
+        # ── Package catalog ───────────────────────────────────────────────────
+        print("--- Package catalog ---")
+        check("package catalog list", "READ", host, sid, "SYNO.Core.Package.Server", "1", "list",
+              limit=10, offset=0)
+
+        # ── Known API limitations (resolved via SSH fallback) ─────────────────
+        print("--- Known API limitations ---")
+        skip("container logs HTTP API",
+             "error 114 on CM24.x — resolved: skill falls back to SSH docker logs")
+        skip("docker image pull HTTP API",
+             "error 103 on CM24.x — resolved: skill falls back to SSH docker pull")
+        skip("DSM upgrade HTTP API",
+             "error 103 on DSM 7.2+ — resolved: skill uses SSH synoupgrade CLI")
 
     finally:
         logout(host, sid)
