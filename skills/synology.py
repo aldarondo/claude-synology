@@ -8,26 +8,31 @@ Usage:
 Commands:
   status                            System dashboard (CPU, RAM, temp, network, disk I/O)
   storage                           Volume usage, RAID pools, disk health
+  network                           Network interfaces, IPs, gateway
   logs [--level L] [--lines N]      System log viewer
   users                             NAS users and groups
   backup                            Hyper Backup task status
+  reboot                            Reboot the NAS (prompts YES)
+  shutdown                          Shut down the NAS (prompts YES)
 
   packages [filter]                 List installed packages (optional name filter)
   install <package-id>              Install a package
   upgrade [package-id]              List upgradeable packages or upgrade one
 
   dsm check                         DSM version and update check
-  dsm upgrade                       Trigger DSM upgrade (prompts for confirmation)
+  dsm upgrade                       Trigger DSM upgrade (prompts confirmation)
 
   docker list                       List containers with status and health
   docker start <name>               Start a stopped container
   docker stop <name>                Stop a running container (prompts YES)
+  docker restart <name>             Restart a running container (prompts YES)
   docker logs <name>                View container logs
   docker pull [name]                List images or pull a new one
   docker compose <path> <action>    SSH: compose up/down/pull/logs/ps/restart
 
   deploy <repo-url> <path>          SSH: clone repo + bootstrap .env + compose up
   deploy <path> --update            SSH: git pull + compose up
+  edit-env <path> <KEY=VALUE> ...   SSH: set keys in a .env file (secrets-safe)
   ssh "<command>" [--sudo]          SSH: run a shell command on the NAS
   setup-deploy-key                  SSH: generate GitHub deploy key on NAS (run once)
 """
@@ -80,6 +85,26 @@ def dispatch(args):
         from skills import backup_status
         sys.argv = ["backup_status.py"] + rest
         backup_status.main()
+
+    elif cmd == "network":
+        from skills import network
+        sys.argv = ["network.py"] + rest
+        network.main()
+
+    elif cmd == "reboot":
+        from skills import reboot
+        sys.argv = ["reboot.py"] + rest
+        reboot.main()
+
+    elif cmd == "shutdown":
+        from skills import shutdown
+        sys.argv = ["shutdown.py"] + rest
+        shutdown.main()
+
+    elif cmd == "edit-env":
+        from skills import edit_env
+        sys.argv = ["edit_env.py"] + rest
+        edit_env.main()
 
     elif cmd == "packages":
         from skills import packages
@@ -154,13 +179,17 @@ def dispatch(args):
             from skills import docker_pull
             sys.argv = ["docker_pull.py"] + rest[1:]
             docker_pull.main()
+        elif sub == "restart":
+            from skills import docker_restart
+            sys.argv = ["docker_restart.py"] + rest[1:]
+            docker_restart.main()
         elif sub == "compose":
             from skills import docker_compose
             sys.argv = ["docker_compose.py"] + rest[1:]
             docker_compose.main()
         else:
             die(f"Unknown docker subcommand: {sub}\n"
-                "Usage: synology docker <list|start|stop|logs|pull|compose>")
+                "Usage: synology docker <list|start|stop|restart|logs|pull|compose>")
 
     # ── unknown ──────────────────────────────────────────────────────────────
     else:

@@ -78,6 +78,26 @@ def run_checked(client, command, timeout=30):
     return out
 
 
+def sftp_read(client, remote_path):
+    """Read a remote file via SFTP. Returns file contents as a string."""
+    sftp = client.open_sftp()
+    try:
+        with sftp.open(remote_path, "r") as f:
+            return f.read().decode("utf-8", errors="replace")
+    finally:
+        sftp.close()
+
+
+def sftp_write(client, remote_path, content):
+    """Write a string to a remote file via SFTP. Safe for secrets — no shell involved."""
+    sftp = client.open_sftp()
+    try:
+        with sftp.open(remote_path, "w") as f:
+            f.write(content.encode("utf-8"))
+    finally:
+        sftp.close()
+
+
 def sudo_run(client, command, timeout=30):
     """
     Run a command via a PTY shell with sudo + password injection.

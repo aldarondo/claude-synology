@@ -11,9 +11,12 @@
 - [ ] `[Cowork]` **DSM upgrade trigger** — `SYNO.Core.Upgrade upgrade` method not found (error 103). Download step (`SYNO.Core.Upgrade.Server.Download v2 start`) exists but needs correct params (currently error 101 = invalid param). Research: correct two-step download+install flow and required parameters for triggering a DSM upgrade via the HTTP API.
 - [ ] `[Cowork]` **Package install from catalog** — `SYNO.Core.Package.Installation install` returns error 120 for any package not pre-staged. Research: whether the Package Center catalog can be browsed and packages installed via API without a MyDS account session, or if there's a workaround using package feed URLs.
 
+### Missing Subcommands
+- [ ] `[Code]` `synology docker compose logs <path>` — live/recent logs from a compose stack via SSH (SSH-based `docker compose logs` should work unlike the API version)
+
 ### Human Tasks
-- [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `/synology-backup-status`
-- [ ] `[Human]` Run `/synology-setup-deploy-key` then add the public key to each private GitHub repo as a deploy key
+- [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `synology backup`
+- [ ] `[Human]` Add NAS deploy key to each new private GitHub repo before running `synology deploy`
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
@@ -44,6 +47,17 @@
 - 2026-04-13 `[Code]` `/synology-deploy` — SSH-based git clone/pull + .env bootstrap + docker compose up -d; supports --token for private repos
 - 2026-04-13 `[Code]` `requirements.txt` — added paramiko>=3.0, requests>=2.28
 - 2026-04-13 `[Code]` Register 3 new SSH commands in ~/.claude/commands/ (synology-ssh, synology-docker-compose, synology-deploy)
+- 2026-04-14 `[Code]` `skills/synology.py` — central dispatcher; all skills accessible via `synology <command>`; shows full help when called with no args
+- 2026-04-14 `[Code]` Consolidated 19 individual `synology-*` slash commands into single `/synology` hub
+- 2026-04-14 `[Code]` `skills/setup_deploy_key.py` — generates ed25519 key on NAS, configures SSH for github.com, prints public key for GitHub deploy key setup
+- 2026-04-14 `[Human]` Added NAS deploy key to aldarondo/brian-mcp on GitHub
+- 2026-04-14 `[Code]` Deployed brian-mcp to `/volume1/docker/brian-mcp` — brian-mcp-memory running, cloudflared waiting on TUNNEL_TOKEN in .env
+- 2026-04-14 `[Code]` `synology edit-env` — SFTP-based .env editor; values never in shell history or process list
+- 2026-04-14 `[Code]` `synology docker restart` — single container restart via SSH with YES confirmation
+- 2026-04-14 `[Code]` `synology network` — interfaces, IPs, gateway, DNS via HTTP API
+- 2026-04-14 `[Code]` `synology reboot` / `synology shutdown` — graceful NAS power control via HTTP API with YES confirmation
+- 2026-04-14 `[Code]` `tests/test_unit.py` — 29 unit tests covering edit_env (parse/update), deploy URL conversion, destructive command detection, SSH output cleaning; 29/29 passing
+- 2026-04-14 `[Code]` `lib/ssh.py` — added `sftp_read`/`sftp_write` helpers for safe file I/O without shell exposure
 
 ## 🚫 Blocked
 <!-- log blockers here -->
