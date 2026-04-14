@@ -1,12 +1,13 @@
 """
-/synology-deploy <repo-url> <target-path> [--branch <branch>] [--token <github-token>]
+/synology-deploy <repo-url> <target-path> [--branch <branch>]
   Clone or update a repo on the NAS and run docker compose up -d.
 
 /synology-deploy <target-path> --update
   Pull latest commits + docker compose up -d (no clone).
 
-For private repos, pass --token <PAT> or embed credentials in the URL:
-  https://TOKEN@github.com/user/repo.git
+For private repos, use SSH URLs (preferred — no tokens in plain text):
+  git@github.com:user/repo.git
+Run /synology-setup-deploy-key once to set up the NAS SSH key for GitHub.
 
 Steps:
   1. mkdir -p parent dir if needed
@@ -20,7 +21,15 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from lib.ssh import get_client, run, sudo_run, DOCKER
+from lib.ssh import get_client, sudo_run, DOCKER
+
+
+def https_to_ssh(url):
+    """Convert https://github.com/user/repo.git -> git@github.com:user/repo.git"""
+    if url.startswith("https://github.com/"):
+        path = url[len("https://github.com/"):]
+        return f"git@github.com:{path}"
+    return url
 
 
 def main():
@@ -34,12 +43,6 @@ def main():
         branch = args[idx + 1]
         args = [a for a in args if a not in ("--branch", branch)]
 
-    token = None
-    if "--token" in args:
-        idx = args.index("--token")
-        token = args[idx + 1]
-        args = [a for a in args if a not in ("--token", token)]
-
     if update_only:
         if len(args) < 1:
             print("Usage: deploy.py <target-path> --update")
@@ -48,17 +51,19 @@ def main():
         target = args[0]
     else:
         if len(args) < 2:
-            print("Usage: deploy.py <repo-url> <target-path> [--branch <branch>] [--token <pat>]")
+            print("Usage: deploy.py <repo-url> <target-path> [--branch <branch>]")
             print("       deploy.py <target-path> --update")
+            print("\nFor private repos, use SSH URL: git@github.com:user/repo.git")
+            print("Run /synology-setup-deploy-key first to configure NAS SSH key.")
             sys.exit(1)
         repo_url = args[0]
         target   = args[1]
 
-    # Inject token into HTTPS URL for private repos
+    # Prefer SSH URLs — auto-convert HTTPS GitHub URLs
     clone_url = repo_url
-    if token and clone_url and clone_url.startswith("https://"):
-        host_start = len("https://")
-        clone_url = f"https://{token}@{clone_url[host_start:]}"
+    if clone_url and clone_url.startswith("https://github.com/"):
+        clone_url = https_to_ssh(clone_url)
+        print(f"Using SSH URL: {clone_url}")
 
     client = get_client()
     try:
@@ -95,7 +100,6 @@ def main():
                 print(f"\n.env already exists at {target}/.env")
 
         # ── Step 4: docker compose up -d ──────────────────────────────────────
-        # Verify compose file exists
         out = sudo_run(client,
             f"test -f {target}/docker-compose.yml -o -f {target}/compose.yml && echo OK || echo MISSING")
         if "MISSING" in out:

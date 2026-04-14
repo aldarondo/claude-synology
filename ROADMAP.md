@@ -13,7 +13,7 @@
 
 ### Human Tasks
 - [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `/synology-backup-status`
-- [ ] `[Human]` Provide GitHub Personal Access Token for deploying private repos (needed for `/synology-deploy` with private repos)
+- [ ] `[Human]` Run `/synology-setup-deploy-key` then add the public key to each private GitHub repo as a deploy key
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
