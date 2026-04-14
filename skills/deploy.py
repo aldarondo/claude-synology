@@ -1,0 +1,121 @@
+"""
+/synology-deploy <repo-url> <target-path> [--branch <branch>] [--token <github-token>]
+  Clone or update a repo on the NAS and run docker compose up -d.
+
+/synology-deploy <target-path> --update
+  Pull latest commits + docker compose up -d (no clone).
+
+For private repos, pass --token <PAT> or embed credentials in the URL:
+  https://TOKEN@github.com/user/repo.git
+
+Steps:
+  1. mkdir -p parent dir if needed
+  2. git clone (first time) or git pull (update)
+  3. If .env.example exists but .env doesn't: copy it (leave secrets blank for you to fill)
+  4. docker compose up -d
+  5. docker compose ps (show final state)
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from lib.ssh import get_client, run, sudo_run, DOCKER
+
+
+def main():
+    args = sys.argv[1:]
+    update_only = "--update" in args
+    args = [a for a in args if a != "--update"]
+
+    branch = "main"
+    if "--branch" in args:
+        idx = args.index("--branch")
+        branch = args[idx + 1]
+        args = [a for a in args if a not in ("--branch", branch)]
+
+    token = None
+    if "--token" in args:
+        idx = args.index("--token")
+        token = args[idx + 1]
+        args = [a for a in args if a not in ("--token", token)]
+
+    if update_only:
+        if len(args) < 1:
+            print("Usage: deploy.py <target-path> --update")
+            sys.exit(1)
+        repo_url = None
+        target = args[0]
+    else:
+        if len(args) < 2:
+            print("Usage: deploy.py <repo-url> <target-path> [--branch <branch>] [--token <pat>]")
+            print("       deploy.py <target-path> --update")
+            sys.exit(1)
+        repo_url = args[0]
+        target   = args[1]
+
+    # Inject token into HTTPS URL for private repos
+    clone_url = repo_url
+    if token and clone_url and clone_url.startswith("https://"):
+        host_start = len("https://")
+        clone_url = f"https://{token}@{clone_url[host_start:]}"
+
+    client = get_client()
+    try:
+        # ── Step 1/2: Clone or pull ────────────────────────────────────────────
+        out = sudo_run(client, f"test -d {target}/.git && echo EXISTS || echo MISSING")
+
+        if "MISSING" in out:
+            if update_only:
+                print(f"No git repo found at {target}. Use clone mode instead.")
+                sys.exit(1)
+            print(f"Cloning {repo_url}\n  -> {target}  (branch: {branch}) ...")
+            parent = "/".join(target.rstrip("/").split("/")[:-1])
+            sudo_run(client, f"mkdir -p {parent}")
+            out = sudo_run(client,
+                f"GIT_TERMINAL_PROMPT=0 git clone --branch {branch} {clone_url} {target} 2>&1",
+                timeout=60)
+            print(out or "Cloned OK")
+        else:
+            print(f"Updating {target} ...")
+            out = sudo_run(client, f"cd {target} && git pull 2>&1", timeout=30)
+            print(out or "Already up to date")
+
+        # ── Step 3: Bootstrap .env if missing ─────────────────────────────────
+        out = sudo_run(client,
+            f"test -f {target}/.env.example && echo HAS_EXAMPLE || echo NO_EXAMPLE")
+        if "HAS_EXAMPLE" in out:
+            out2 = sudo_run(client,
+                f"test -f {target}/.env && echo HAS_ENV || echo NO_ENV")
+            if "NO_ENV" in out2:
+                sudo_run(client, f"cp {target}/.env.example {target}/.env")
+                print(f"\nCreated {target}/.env from .env.example")
+                print(f"  >> Edit {target}/.env to fill in any required secrets before proceeding.")
+            else:
+                print(f"\n.env already exists at {target}/.env")
+
+        # ── Step 4: docker compose up -d ──────────────────────────────────────
+        # Verify compose file exists
+        out = sudo_run(client,
+            f"test -f {target}/docker-compose.yml -o -f {target}/compose.yml && echo OK || echo MISSING")
+        if "MISSING" in out:
+            print(f"\nNo docker-compose.yml found in {target}. Skipping compose up.")
+            return
+
+        print("\nStarting containers ...")
+        out = sudo_run(client,
+            f"cd {target} && {DOCKER} compose up -d 2>&1", timeout=120)
+        print(out)
+
+        # ── Step 5: Final state ────────────────────────────────────────────────
+        print("\nContainer status:")
+        out = sudo_run(client,
+            f"cd {target} && {DOCKER} compose ps 2>&1")
+        print(out)
+
+    finally:
+        client.close()
+
+
+if __name__ == "__main__":
+    main()
