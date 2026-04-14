@@ -7,6 +7,7 @@ Usage:
 
 Commands:
   status                            System dashboard (CPU, RAM, temp, network, disk I/O)
+  health                            Aggregated health check — storage, temps, containers, DSM
   storage                           Volume usage, RAID pools, disk health
   network                           Network interfaces, IPs, gateway
   logs [--level L] [--lines N]      System log viewer
@@ -14,6 +15,11 @@ Commands:
   backup                            Hyper Backup task status
   reboot                            Reboot the NAS (prompts YES)
   shutdown                          Shut down the NAS (prompts YES)
+
+  file read <path>                  SFTP: print file contents
+  file list <path>                  SFTP: list directory
+  file exists <path>                SFTP: check if file/dir exists
+  file delete <path>                SSH: delete a file (prompts YES)
 
   packages [filter]                 List installed packages (optional name filter)
   install <package-id>              Install a package
@@ -86,6 +92,11 @@ def dispatch(args):
         sys.argv = ["backup_status.py"] + rest
         backup_status.main()
 
+    elif cmd == "health":
+        from skills import health
+        sys.argv = ["health.py"] + rest
+        health.main()
+
     elif cmd == "network":
         from skills import network
         sys.argv = ["network.py"] + rest
@@ -105,6 +116,11 @@ def dispatch(args):
         from skills import edit_env
         sys.argv = ["edit_env.py"] + rest
         edit_env.main()
+
+    elif cmd == "file":
+        from skills import file_ops
+        sys.argv = ["file_ops.py"] + rest
+        file_ops.main()
 
     elif cmd == "packages":
         from skills import packages

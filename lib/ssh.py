@@ -79,23 +79,43 @@ def run_checked(client, command, timeout=30):
 
 
 def sftp_read(client, remote_path):
-    """Read a remote file via SFTP. Returns file contents as a string."""
-    sftp = client.open_sftp()
-    try:
-        with sftp.open(remote_path, "r") as f:
-            return f.read().decode("utf-8", errors="replace")
-    finally:
-        sftp.close()
+    """
+    Read a remote file's contents without stripping whitespace.
+    Falls back to sudo cat for root-owned files.
+    Raises FileNotFoundError if the file doesn't exist.
+    """
+    stdin, stdout, stderr = client.exec_command(f"cat {remote_path}")
+    code = stdout.channel.recv_exit_status()
+    out  = stdout.read().decode("utf-8", errors="replace")
+    err  = stderr.read().decode("utf-8", errors="replace").strip()
+    if code != 0:
+        if "No such file" in err or "not found" in err.lower():
+            raise FileNotFoundError(f"{remote_path}: {err}")
+        # Try sudo for root-owned files
+        out = sudo_run(client, f"cat {remote_path} 2>&1")
+        if "No such file" in out or "Permission denied" in out:
+            raise FileNotFoundError(f"{remote_path}: {out.strip()}")
+    return out
 
 
 def sftp_write(client, remote_path, content):
-    """Write a string to a remote file via SFTP. Safe for secrets — no shell involved."""
-    sftp = client.open_sftp()
-    try:
-        with sftp.open(remote_path, "w") as f:
-            f.write(content.encode("utf-8"))
-    finally:
-        sftp.close()
+    """
+    Write a string to a remote file safely — content is piped via stdin,
+    never appears in shell command line or process list.
+    Uses a /tmp staging file + sudo mv to handle root-owned destinations.
+    """
+    import time as _time
+    tmp = f"/tmp/.nas_write_{int(_time.time() * 1000)}"
+    # Pipe content to tmp (user-writable, no sudo needed)
+    stdin, stdout, stderr = client.exec_command(f"cat > {tmp}")
+    stdin.write(content.encode("utf-8"))
+    stdin.channel.shutdown_write()
+    code = stdout.channel.recv_exit_status()
+    if code != 0:
+        err = stderr.read().decode("utf-8", errors="replace").strip()
+        raise IOError(f"Failed to stage file in /tmp: {err}")
+    # Move to final destination (sudo for root-owned paths)
+    sudo_run(client, f"mv {tmp} {remote_path}")
 
 
 def sudo_run(client, command, timeout=30):
