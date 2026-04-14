@@ -1,64 +1,14 @@
 # claude-synology
 
-Manage a Synology NAS from Claude Code via Python scripts — packages, DSM updates, Docker containers, storage health, users, and logs.
+Manage a Synology NAS from Claude Code via a single `/synology` slash command. All operations go through one dispatcher — type `/synology` with no arguments to see the full command reference.
 
-## Features
-- System dashboard: CPU, RAM, temp, uptime, network, disk I/O
-- List installed packages (38 on DS916+)
-- Check DSM version and available updates
-- Docker container management (list, start, stop, pull, logs)
-- Storage: volume usage, RAID pool status, disk S.M.A.R.T and temps
-- System log viewer with level/type filters
-- User and group listing
+## Quick Start
 
-## Tech Stack
-| Layer | Technology |
-|---|---|
-| Language | Python 3 |
-| API | Synology DSM HTTP API (session-based, port 5000) |
-| Auth | `lib/auth.py` — POST-based SID token, auto-corrects protocol |
-| Interface | `python skills/<skill>.py` |
-
-## Skills
-
-### Working
-| Script | Description |
-|---|---|
-| `skills/status.py` | System dashboard — model, DSM version, CPU, RAM, temp, network, disk I/O |
-| `skills/packages.py` | List all installed packages; `--filter <text>` to narrow |
-| `skills/dsm_check.py` | Current DSM version, live update check, auto-upgrade setting |
-| `skills/docker.py` | List containers with status, health, and image |
-| `skills/storage.py` | Volume usage bars, RAID pool table, disk temps and S.M.A.R.T |
-| `skills/logs.py` | System logs; `--level error|warning|info` `--lines N` filters |
-| `skills/users.py` | All NAS users with email and group memberships |
-| `skills/backup_status.py` | Hyper Backup task status (requires Hyper Backup package) |
-
-### Stubs (written, not yet tested)
-| Script | Description |
-|---|---|
-| `skills/upgrade_package.py` | Upgrade a specific package or all outdated ones |
-| `skills/install_package.py` | Search Package Center and install a package |
-| `skills/dsm_upgrade.py` | Trigger DSM upgrade with confirmation gate |
-| `skills/docker_start.py` | Start a stopped container |
-| `skills/docker_stop.py` | Stop a running container |
-| `skills/docker_logs.py` | Tail recent logs from a container |
-| `skills/docker_pull.py` | Pull or update a Docker image |
-
-## Getting Started
-
-1. Copy `config.example.json` to `config.json` and fill in your NAS IP and credentials.
-2. `config.json` is gitignored — never commit it.
-3. Install dependencies:
-
-```bash
-pip install requests
-```
-
-4. Test auth:
-
-```bash
-python lib/auth.py
-```
+1. Copy `config.example.json` → `config.json` and fill in your NAS details
+2. `config.json` is gitignored — never commit it
+3. Install dependencies: `pip install -r requirements.txt`
+4. Test HTTP API connection: `python lib/auth.py`
+5. Test SSH connection: `python lib/ssh.py`
 
 ## Configuration
 
@@ -67,14 +17,135 @@ python lib/auth.py
   "host": "http://192.168.x.x:5000",
   "username": "admin",
   "password": "your-password",
-  "verify_ssl": false
+  "verify_ssl": false,
+  "ssh": {
+    "host": "192.168.x.x",
+    "port": 2222,
+    "username": "your-nas-user",
+    "password": "your-password"
+  }
 }
 ```
 
-Port notes: `5000` = HTTP, `5001` = HTTPS. `lib/auth.py` auto-corrects if you mix them up.
+Port notes: `5000` = HTTP, `5001` = HTTPS. `lib/auth.py` auto-corrects if you mix them up.  
+SSH requires DSM > Control Panel > Terminal & SNMP > Enable SSH service.
 
-## Project Status
-Core read skills working against a DS916+ running DSM 7.2.2. Write operations (upgrade, install, start/stop) scaffolded but not yet validated. See [ROADMAP.md](ROADMAP.md).
+## Command Reference
+
+All commands run via: `python skills/synology.py <command> [args]`
+
+### System
+| Command | Description |
+|---|---|
+| `status` | Dashboard — DSM version, CPU, RAM, temp, network, disk I/O |
+| `health` | Aggregated health check — storage %, RAID, disk temps/SMART, containers, DSM update |
+| `storage` | Volume usage bars, RAID pool table, disk temps and S.M.A.R.T |
+| `network` | Network interfaces, IPs, gateway, DNS |
+| `logs [--level L] [--lines N] [--type T]` | System log viewer with filters |
+| `users` | NAS users with email and group memberships |
+| `backup` | Hyper Backup task status (requires Hyper Backup package) |
+| `reboot` | Graceful NAS reboot (prompts YES) |
+| `shutdown` | Graceful NAS shutdown (prompts YES) |
+
+### Packages
+| Command | Description |
+|---|---|
+| `packages [filter]` | List installed packages; optional name filter |
+| `install <name>` | Search Package Center catalog (111 packages) and install |
+| `upgrade [package-id]` | List upgradeable packages or upgrade a specific one |
+
+### DSM
+| Command | Description |
+|---|---|
+| `dsm check` | Current DSM version, update availability, auto-upgrade setting |
+| `dsm upgrade` | Download and install DSM update via SSH `synoupgrade` (prompts YES; reboots NAS) |
+
+### Docker — HTTP API
+| Command | Description |
+|---|---|
+| `docker list` | All containers with status, health, and image |
+| `docker start <name>` | Start a stopped container |
+| `docker stop <name>` | Stop a running container (prompts YES) |
+| `docker restart <name>` | Restart a container (prompts YES) |
+| `docker logs <name> [--lines N]` | Container logs — HTTP API with SSH fallback for Compose containers |
+| `docker pull [<image:tag>]` | List local images; pull via SSH when image specified (prompts YES) |
+
+### Docker — SSH (Compose stacks)
+| Command | Description |
+|---|---|
+| `docker compose <path> <action>` | Run compose `up/down/pull/logs/ps/restart` in a directory |
+
+### Deployment
+| Command | Description |
+|---|---|
+| `deploy <repo-url> <path>` | Clone repo, bootstrap `.env`, run `docker compose up -d` |
+| `deploy <path> --update` | Pull latest commits + `docker compose up -d` |
+| `edit-env <path> <KEY=VALUE> ...` | Set .env keys via SFTP — values never in shell history |
+| `setup-deploy-key` | Generate SSH deploy key on NAS for GitHub (run once) |
+
+### Files & Shell
+| Command | Description |
+|---|---|
+| `file read <path>` | Print file contents (SFTP; falls back to sudo cat) |
+| `file list <path>` | List directory (`ls -lh`) |
+| `file exists <path>` | Check if file/directory exists |
+| `file delete <path>` | Delete a file (prompts YES) |
+| `ssh "<command>" [--sudo]` | Run an arbitrary shell command on the NAS |
+
+## Architecture
+
+```
+skills/synology.py       ← single dispatcher, routes all subcommands
+skills/*.py              ← individual skill modules
+lib/auth.py              ← HTTP API session (SID token, POST-based)
+lib/ssh.py               ← SSH client (paramiko, PTY sudo, stdin file writes)
+```
+
+**Two transport layers:**
+- **HTTP API** (`lib/auth.py`) — DSM web API on port 5000/5001. Used for read operations, package management, container control.
+- **SSH** (`lib/ssh.py`) — paramiko on port 2222. Used for git/deploy operations, docker compose, file management, and as fallback when HTTP API methods are missing or broken in Container Manager 24.x.
+
+## Private GitHub Repos
+
+SSH deploy keys are used — no tokens in config files or shell history.
+
+```bash
+# One-time setup per NAS
+python skills/synology.py setup-deploy-key
+# Add the printed public key to GitHub repo > Settings > Deploy keys
+```
+
+Then deploy with SSH URLs:
+```bash
+python skills/synology.py deploy git@github.com:user/repo.git /volume1/docker/repo
+```
+
+## Testing
+
+```bash
+# Unit tests (no NAS required)
+python tests/test_unit.py
+
+# HTTP API integration tests (live NAS)
+python tests/integration.py
+
+# SSH integration tests (live NAS)
+python tests/test_ssh_integration.py
+```
+
+Current status: **29/29 unit** · **20/20 HTTP integration** · **23/23 SSH integration**
+
+## Known Limitations
+
+| Issue | Status |
+|---|---|
+| `docker compose logs` truncates at 120s | PTY timeout — use `docker logs` for single containers |
+| `synology backup` requires Hyper Backup | Install via DSM > Package Center |
+| Premium/hardware packages may not install via API | Use DSM UI |
+
+## Tested Against
+
+DS916+, DSM 7.2.2, Container Manager 24.x
 
 ---
 **Publisher:** Xity Software, LLC
