@@ -21,7 +21,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from lib.ssh import get_client, sudo_run, DOCKER
+from lib.ssh import get_client, run, sudo_run, DOCKER
 
 
 def https_to_ssh(url):
@@ -67,6 +67,12 @@ def main():
 
     client = get_client()
     try:
+        # Resolve the deploy key path dynamically if charles's home differs
+        home, _, _ = run(client, "echo $HOME")
+        home = home.strip()
+        deploy_key = f"{home}/.ssh/github_deploy"
+        git_ssh = f"GIT_SSH_COMMAND='ssh -i {deploy_key} -o StrictHostKeyChecking=accept-new'"
+
         # ── Step 1/2: Clone or pull ────────────────────────────────────────────
         out = sudo_run(client, f"test -d {target}/.git && echo EXISTS || echo MISSING")
 
@@ -77,13 +83,15 @@ def main():
             print(f"Cloning {repo_url}\n  -> {target}  (branch: {branch}) ...")
             parent = "/".join(target.rstrip("/").split("/")[:-1])
             sudo_run(client, f"mkdir -p {parent}")
+            branch_flag = f"--branch {branch}" if branch != "main" else ""
             out = sudo_run(client,
-                f"GIT_TERMINAL_PROMPT=0 git clone --branch {branch} {clone_url} {target} 2>&1",
+                f"{git_ssh} git clone {branch_flag} {clone_url} {target} 2>&1",
                 timeout=60)
             print(out or "Cloned OK")
         else:
             print(f"Updating {target} ...")
-            out = sudo_run(client, f"cd {target} && git pull 2>&1", timeout=30)
+            out = sudo_run(client,
+                f"sh -c 'cd {target} && {git_ssh} git pull 2>&1'", timeout=30)
             print(out or "Already up to date")
 
         # ── Step 3: Bootstrap .env if missing ─────────────────────────────────
@@ -108,13 +116,13 @@ def main():
 
         print("\nStarting containers ...")
         out = sudo_run(client,
-            f"cd {target} && {DOCKER} compose up -d 2>&1", timeout=120)
+            f"sh -c 'cd {target} && {DOCKER} compose up -d 2>&1'", timeout=120)
         print(out)
 
         # ── Step 5: Final state ────────────────────────────────────────────────
         print("\nContainer status:")
         out = sudo_run(client,
-            f"cd {target} && {DOCKER} compose ps 2>&1")
+            f"sh -c 'cd {target} && {DOCKER} compose ps 2>&1'")
         print(out)
 
     finally:

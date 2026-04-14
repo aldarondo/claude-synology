@@ -56,17 +56,17 @@ def main():
 
         # Build and run the command
         if action == "up":
-            cmd = f"cd {path} && {DOCKER} compose up -d"
+            cmd = f"sh -c 'cd {path} && {DOCKER} compose up -d'"
         elif action == "down":
-            cmd = f"cd {path} && {DOCKER} compose down"
+            cmd = f"sh -c 'cd {path} && {DOCKER} compose down'"
         elif action == "pull":
-            cmd = f"cd {path} && {DOCKER} compose pull"
+            cmd = f"sh -c 'cd {path} && {DOCKER} compose pull'"
         elif action == "logs":
-            cmd = f"cd {path} && {DOCKER} compose logs --tail={LOG_LINES}"
+            cmd = f"sh -c 'cd {path} && {DOCKER} compose logs --tail={LOG_LINES}'"
         elif action == "ps":
-            cmd = f"cd {path} && {DOCKER} compose ps"
+            cmd = f"sh -c 'cd {path} && {DOCKER} compose ps'"
         elif action == "restart":
-            cmd = f"cd {path} && {DOCKER} compose restart"
+            cmd = f"sh -c 'cd {path} && {DOCKER} compose restart'"
         else:
             print(f"Unknown action: {action}")
             sys.exit(1)

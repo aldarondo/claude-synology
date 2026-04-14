@@ -132,9 +132,11 @@ def _read_until_prompt_or_password(shell, timeout=30, chunk_size=4096):
 
 
 def _clean(text):
-    """Strip ANSI codes, carriage returns, trailing prompt line."""
-    text = re.sub(r"\x1b\[[0-9;]*[mABCDEFGHJKSTfhnsu]", "", text)
+    """Strip ANSI codes, carriage returns, non-ASCII control chars, trailing prompt line."""
+    text = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", text)  # ANSI CSI sequences incl. ?25l/h
     text = text.replace("\r", "")
+    # Strip non-ASCII characters (e.g. docker compose spinner/braille progress chars)
+    text = text.encode("ascii", errors="ignore").decode("ascii")
     # Remove the trailing shell prompt line (user@host:~$ ...)
     lines = text.splitlines()
     clean = [l for l in lines if not re.search(r"@\w+.*\$\s*$", l)]
