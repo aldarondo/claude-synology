@@ -7,7 +7,7 @@
 
 
 ### Missing Subcommands
-- [ ] `[Code]` `synology docker compose logs <path>` — live/recent logs from a compose stack via SSH (SSH-based `docker compose logs` should work unlike the API version; note the related docker-logs SSH fallback task above covers single containers)
+- [x] `[Code]` `synology docker compose logs <path>` — live/recent logs from a compose stack via SSH (SSH-based `docker compose logs` should work unlike the API version; note the related docker-logs SSH fallback task above covers single containers)
 
 ### Human Tasks
 - [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `synology backup`
@@ -61,6 +61,7 @@
 - 2026-04-14 `[Code]` `synology dsm upgrade` — SSH `synoupgrade --download + --start`; HTTP API returns error 103 in DSM 7.2+
 - 2026-04-14 `[Code]` `synology install` — browses Package Center catalog via `SYNO.Core.Package.Server` (111 packages); installs by pkgname with selection prompt
 - 2026-04-14 `[Code]` `tests/integration.py` — updated to 20/20 passing; added package catalog test, updated skip notes to reflect SSH resolutions
+- 2026-04-14 `[Code]` `synology docker compose logs <path>` — already implemented as `synology docker compose <path> logs` via SSH; marked complete
 
 ## 🚫 Blocked
 <!-- log blockers here -->

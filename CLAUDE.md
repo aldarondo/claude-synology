@@ -28,3 +28,7 @@ Each skill in `skills/` is a standalone Python script.
 - SSH skills use `lib/ssh.py` (paramiko, requires SSH enabled on NAS port 2222)
 
 @~/Documents/GitHub/CLAUDE.md
+
+## Git Rules
+- Never create pull requests. Push directly to main.
+- solo/auto-push OK
