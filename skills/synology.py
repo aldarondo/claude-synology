@@ -41,6 +41,7 @@ Commands:
   edit-env <path> <KEY=VALUE> ...   SSH: set keys in a .env file (secrets-safe)
   ssh "<command>" [--sudo]          SSH: run a shell command on the NAS
   setup-deploy-key                  SSH: generate GitHub deploy key on NAS (run once)
+  add-deploy-key <owner/repo>       Register NAS deploy key on a GitHub repo via gh CLI
 """
 
 import sys
@@ -141,6 +142,11 @@ def dispatch(args):
         from skills import setup_deploy_key
         sys.argv = ["setup_deploy_key.py"] + rest
         setup_deploy_key.main()
+
+    elif cmd == "add-deploy-key":
+        from skills import add_deploy_key
+        sys.argv = ["add_deploy_key.py"] + rest
+        add_deploy_key.main()
 
     elif cmd == "deploy":
         from skills import deploy

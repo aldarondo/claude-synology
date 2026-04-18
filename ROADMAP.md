@@ -10,7 +10,7 @@
 - [x] `[Code]` `synology docker compose logs <path>` — live/recent logs from a compose stack via SSH (SSH-based `docker compose logs` should work unlike the API version; note the related docker-logs SSH fallback task above covers single containers)
 
 ### Human Tasks
-- [ ] `[Human]` Add NAS deploy key to each new private GitHub repo before running `synology deploy`
+- [ ] `[Human]` Add NAS deploy key to each new private GitHub repo before running `synology deploy` — or run `synology add-deploy-key <owner/repo>` to automate it
 
 ## ✅ Completed
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
