@@ -67,11 +67,18 @@ def main():
 
     client = get_client()
     try:
-        # Resolve the deploy key path dynamically if charles's home differs
+        # Resolve the deploy key path dynamically if charles's home differs.
+        # Per-repo SSH host aliases (e.g. git@github-claude-enphase:...) are
+        # set up by `synology add-deploy-key` and use ~/.ssh/config routing —
+        # no GIT_SSH_COMMAND override needed for those.
+        # Fall back to explicit key for legacy git@github.com: URLs.
         home, _, _ = run(client, "echo $HOME")
         home = home.strip()
         deploy_key = f"{home}/.ssh/github_deploy"
-        git_ssh = f"GIT_SSH_COMMAND='ssh -i {deploy_key} -o StrictHostKeyChecking=accept-new'"
+        if clone_url and "git@github.com:" in (clone_url or ""):
+            git_ssh = f"GIT_SSH_COMMAND='ssh -i {deploy_key} -o StrictHostKeyChecking=accept-new'"
+        else:
+            git_ssh = ""  # rely on ~/.ssh/config Host alias routing
 
         # ── Step 1/2: Clone or pull ────────────────────────────────────────────
         out = sudo_run(client, f"test -d {target}/.git && echo EXISTS || echo MISSING")
