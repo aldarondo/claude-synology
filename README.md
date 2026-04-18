@@ -82,6 +82,7 @@ All commands run via: `python skills/synology.py <command> [args]`
 | `deploy <path> --update` | Pull latest commits + `docker compose up -d` |
 | `edit-env <path> <KEY=VALUE> ...` | Set .env keys via SFTP — values never in shell history |
 | `setup-deploy-key` | Generate SSH deploy key on NAS for GitHub (run once) |
+| `add-deploy-key <owner/repo>` | Register NAS deploy key on a GitHub repo via `gh` CLI |
 
 ### Files & Shell
 | Command | Description |
@@ -110,14 +111,17 @@ lib/ssh.py               ← SSH client (paramiko, PTY sudo, stdin file writes)
 SSH deploy keys are used — no tokens in config files or shell history.
 
 ```bash
-# One-time setup per NAS
+# One-time NAS setup (generates the key, run once)
 python skills/synology.py setup-deploy-key
-# Add the printed public key to GitHub repo > Settings > Deploy keys
-```
 
-Then deploy with SSH URLs:
-```bash
-python skills/synology.py deploy git@github.com:user/repo.git /volume1/docker/repo
+# Per-repo: register the NAS key on GitHub (replaces manual GitHub UI steps)
+python skills/synology.py add-deploy-key owner/repo
+
+# Deploy
+python skills/synology.py deploy git@github.com:owner/repo.git /volume1/docker/repo
+
+# Update later
+python skills/synology.py deploy /volume1/docker/repo --update
 ```
 
 ## Testing
@@ -140,7 +144,6 @@ Current status: **29/29 unit** · **20/20 HTTP integration** · **23/23 SSH inte
 | Issue | Status |
 |---|---|
 | `docker compose logs` truncates at 120s | PTY timeout — use `docker logs` for single containers |
-| `synology backup` requires Hyper Backup | Install via DSM > Package Center |
 | Premium/hardware packages may not install via API | Use DSM UI |
 
 ## Tested Against
