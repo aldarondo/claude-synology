@@ -10,7 +10,6 @@
 - [x] `[Code]` `synology docker compose logs <path>` — live/recent logs from a compose stack via SSH (SSH-based `docker compose logs` should work unlike the API version; note the related docker-logs SSH fallback task above covers single containers)
 
 ### Human Tasks
-- [ ] `[Human]` Install Hyper Backup from Package Center (DSM UI) to enable `synology backup`
 - [ ] `[Human]` Add NAS deploy key to each new private GitHub repo before running `synology deploy`
 
 ## ✅ Completed
