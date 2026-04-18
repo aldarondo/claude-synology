@@ -27,6 +27,9 @@ Each skill in `skills/` is a standalone Python script.
 - HTTP API skills use `lib/auth.py` for session management
 - SSH skills use `lib/ssh.py` (paramiko, requires SSH enabled on NAS port 2222)
 
+## Standing Rules
+- Whenever a command is added, removed, or changed, update `README.md` to reflect it — command tables, examples, and any relevant sections.
+
 @~/Documents/GitHub/CLAUDE.md
 
 ## Git Rules
