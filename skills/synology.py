@@ -46,9 +46,21 @@ Commands:
 
 import sys
 import os
+import re
 
 # Ensure lib/ is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+# Git Bash on Windows converts /volume1/... to C:/Program Files/Git/volume1/...
+# Undo that mangling so NAS paths reach the skill unchanged.
+_GIT_BASH_PATH_RE = re.compile(r'^[A-Za-z]:[/\\].*?[/\\](volume\d.*)$')
+
+def _fix_arg(arg):
+    m = _GIT_BASH_PATH_RE.match(arg)
+    return "/" + m.group(1).replace("\\", "/") if m else arg
+
+def _fix_args(args):
+    return [_fix_arg(a) for a in args]
 
 
 def die(msg):
@@ -64,6 +76,7 @@ def dispatch(args):
         print(HELP)
         return
 
+    args = _fix_args(args)
     cmd = args[0].lower()
     rest = args[1:]
 

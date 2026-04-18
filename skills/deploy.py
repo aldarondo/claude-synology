@@ -32,6 +32,19 @@ def https_to_ssh(url):
     return url
 
 
+def fix_nas_path(path):
+    """
+    Git Bash on Windows converts /volume1/... to C:/Program Files/Git/volume1/...
+    Detect and reverse: find the first /volume<N>/ segment and take from there.
+    """
+    import re
+    normalized = path.replace("\\", "/")
+    m = re.search(r"(/volume\d+/.+)$", normalized)
+    if m:
+        return m.group(1)
+    return path
+
+
 def main():
     args = sys.argv[1:]
     update_only = "--update" in args
@@ -48,7 +61,7 @@ def main():
             print("Usage: deploy.py <target-path> --update")
             sys.exit(1)
         repo_url = None
-        target = args[0]
+        target = fix_nas_path(args[0])
     else:
         if len(args) < 2:
             print("Usage: deploy.py <repo-url> <target-path> [--branch <branch>]")
@@ -57,7 +70,7 @@ def main():
             print("Run /synology-setup-deploy-key first to configure NAS SSH key.")
             sys.exit(1)
         repo_url = args[0]
-        target   = args[1]
+        target   = fix_nas_path(args[1])
 
     # Prefer SSH URLs — auto-convert HTTPS GitHub URLs
     clone_url = repo_url
@@ -67,18 +80,20 @@ def main():
 
     client = get_client()
     try:
-        # Resolve the deploy key path dynamically if charles's home differs.
-        # Per-repo SSH host aliases (e.g. git@github-claude-enphase:...) are
-        # set up by `synology add-deploy-key` and use ~/.ssh/config routing —
-        # no GIT_SSH_COMMAND override needed for those.
-        # Fall back to explicit key for legacy git@github.com: URLs.
+        # Resolve paths relative to charles's home (not root's home, since
+        # sudo_run elevates to root and changes HOME).
+        # - For legacy git@github.com: URLs use the single shared deploy key.
+        # - For host-alias URLs (git@github-<slug>:...) rely on ~/.ssh/config,
+        #   but pass the config path explicitly so sudo doesn't use /root/.ssh/config.
         home, _, _ = run(client, "echo $HOME")
         home = home.strip()
+        ssh_config = f"{home}/.ssh/config"
         deploy_key = f"{home}/.ssh/github_deploy"
         if clone_url and "git@github.com:" in (clone_url or ""):
             git_ssh = f"GIT_SSH_COMMAND='ssh -i {deploy_key} -o StrictHostKeyChecking=accept-new'"
         else:
-            git_ssh = ""  # rely on ~/.ssh/config Host alias routing
+            # Explicitly pass the user's ssh config so sudo uses the right Host alias
+            git_ssh = f"GIT_SSH_COMMAND='ssh -F {ssh_config} -o StrictHostKeyChecking=accept-new'"
 
         # ── Step 1/2: Clone or pull ────────────────────────────────────────────
         out = sudo_run(client, f"test -d {target}/.git && echo EXISTS || echo MISSING")
