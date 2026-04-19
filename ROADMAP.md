@@ -6,13 +6,10 @@
 ## 🔲 Backlog
 
 
-### Missing Subcommands
-- [x] `[Code]` `synology docker compose logs <path>` — live/recent logs from a compose stack via SSH (SSH-based `docker compose logs` should work unlike the API version; note the related docker-logs SSH fallback task above covers single containers)
-
-### Human Tasks
-- [ ] `[Human]` Add NAS deploy key to each new private GitHub repo before running `synology deploy` — or run `synology add-deploy-key <owner/repo>` to automate it
-
 ## ✅ Completed
+- 2026-04-19 `[Code]` `synology ghcr-login` — authenticates Docker on NAS to ghcr.io; token piped via stdin (never in shell history); reads from config.json `ghcr` block or CLI args
+- 2026-04-19 `[Code]` `synology docker stats` — snapshot CPU, memory, net/block I/O for all running containers via `docker stats --no-stream`
+- 2026-04-19 `[Code]` `synology deploy --update` GHCR fix — no longer errors when `.git` dir is absent; skips git pull and goes straight to `docker compose pull + up -d`
 - 2026-04-18 `[Code]` `synology add-deploy-key` — rewrote to per-repo key strategy; generates `~/.ssh/github_deploy_<slug>`, adds SSH config Host alias, registers on GitHub via gh CLI; fixes "key already in use" error on multi-repo setups
 - 2026-04-18 `[Code]` `synology deploy` — fixed two Windows bugs: (1) Git Bash path mangling `/volume1/...` → `C:/Program Files/Git/volume1/...` via `fix_nas_path()` regex; (2) `sudo_run` using root's `~/.ssh/config` instead of user's — now passes explicit `GIT_SSH_COMMAND='ssh -F <home>/.ssh/config'` for host-alias URLs
 - 2026-04-18 `[Code]` Deployed claude-enphase to `/volume1/docker/claude-enphase` via `synology deploy git@github-claude-enphase:aldarondo/claude-enphase.git /volume1/docker/claude-enphase`; container running with scheduler active

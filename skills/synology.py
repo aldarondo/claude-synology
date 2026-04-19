@@ -29,6 +29,7 @@ Commands:
   dsm upgrade                       Trigger DSM upgrade (prompts confirmation)
 
   docker list                       List containers with status and health
+  docker stats                      Snapshot CPU, memory, and I/O for all containers
   docker start <name>               Start a stopped container
   docker stop <name>                Stop a running container (prompts YES)
   docker restart <name>             Restart a running container (prompts YES)
@@ -37,8 +38,9 @@ Commands:
   docker compose <path> <action>    SSH: compose up/down/pull/logs/ps/restart
 
   deploy <repo-url> <path>          SSH: clone repo + bootstrap .env + compose up
-  deploy <path> --update            SSH: git pull + compose up
+  deploy <path> --update            SSH: pull latest images + compose up (GHCR or git)
   edit-env <path> <KEY=VALUE> ...   SSH: set keys in a .env file (secrets-safe)
+  ghcr-login [--username U --token T]  Authenticate Docker on NAS to ghcr.io (token via stdin)
   ssh "<command>" [--sudo]          SSH: run a shell command on the NAS
   setup-deploy-key                  SSH: generate GitHub deploy key on NAS (run once)
   add-deploy-key <owner/repo>       Register NAS deploy key on a GitHub repo via gh CLI
@@ -161,6 +163,11 @@ def dispatch(args):
         sys.argv = ["add_deploy_key.py"] + rest
         add_deploy_key.main()
 
+    elif cmd == "ghcr-login":
+        from skills import ghcr_login
+        sys.argv = ["ghcr_login.py"] + rest
+        ghcr_login.main()
+
     elif cmd == "deploy":
         from skills import deploy
         sys.argv = ["deploy.py"] + rest
@@ -198,6 +205,10 @@ def dispatch(args):
             from skills import docker
             sys.argv = ["docker.py"] + rest[1:]
             docker.main()
+        elif sub == "stats":
+            from skills import docker_stats
+            sys.argv = ["docker_stats.py"] + rest[1:]
+            docker_stats.main()
         elif sub == "start":
             from skills import docker_start
             sys.argv = ["docker_start.py"] + rest[1:]
@@ -224,7 +235,7 @@ def dispatch(args):
             docker_compose.main()
         else:
             die(f"Unknown docker subcommand: {sub}\n"
-                "Usage: synology docker <list|start|stop|restart|logs|pull|compose>")
+                "Usage: synology docker <list|stats|start|stop|restart|logs|pull|compose>")
 
     # ── unknown ──────────────────────────────────────────────────────────────
     else:

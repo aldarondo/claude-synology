@@ -64,6 +64,7 @@ All commands run via: `python skills/synology.py <command> [args]`
 | Command | Description |
 |---|---|
 | `docker list` | All containers with status, health, and image |
+| `docker stats` | Snapshot CPU, memory, and I/O for all running containers |
 | `docker start <name>` | Start a stopped container |
 | `docker stop <name>` | Stop a running container (prompts YES) |
 | `docker restart <name>` | Restart a container (prompts YES) |
@@ -81,6 +82,7 @@ All commands run via: `python skills/synology.py <command> [args]`
 | `deploy <path> --update` | Pull latest images + `docker compose up -d` **(preferred — GHCR method)** |
 | `deploy <repo-url> <path>` | Clone repo, bootstrap `.env`, run `docker compose up -d` (git method) |
 | `edit-env <path> <KEY=VALUE> ...` | Set .env keys via SFTP — values never in shell history |
+| `ghcr-login [--username U --token T]` | Authenticate Docker on NAS to ghcr.io (token piped via stdin) |
 | `setup-deploy-key` | Generate SSH deploy key on NAS for GitHub (git method only) |
 | `add-deploy-key <owner/repo>` | Register NAS deploy key on a GitHub repo via `gh` CLI (git method only) |
 
@@ -121,8 +123,10 @@ services:
 ```
 
 ```bash
-# Authenticate Docker to GHCR once (uses a GitHub PAT with read:packages scope)
-python skills/synology.py ssh "echo TOKEN | docker login ghcr.io -u USERNAME --password-stdin"
+# Authenticate Docker to GHCR once (token piped via stdin — never in shell history)
+# Add "ghcr": {"username": "...", "token": "ghp_..."} to config.json, then:
+python skills/synology.py ghcr-login
+# Or pass inline: python skills/synology.py ghcr-login --username USER --token TOKEN
 
 # Pull latest image and restart
 python skills/synology.py deploy /volume1/docker/repo --update

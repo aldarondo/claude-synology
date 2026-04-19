@@ -100,16 +100,16 @@ def main():
 
         if "MISSING" in out:
             if update_only:
-                print(f"No git repo found at {target}. Use clone mode instead.")
-                sys.exit(1)
-            print(f"Cloning {repo_url}\n  -> {target}  (branch: {branch}) ...")
-            parent = "/".join(target.rstrip("/").split("/")[:-1])
-            sudo_run(client, f"mkdir -p {parent}")
-            branch_flag = f"--branch {branch}" if branch != "main" else ""
-            out = sudo_run(client,
-                f"{git_ssh} git clone {branch_flag} {clone_url} {target} 2>&1",
-                timeout=60)
-            print(out or "Cloned OK")
+                print(f"No git repo at {target} — skipping git pull (GHCR/registry mode)")
+            else:
+                print(f"Cloning {repo_url}\n  -> {target}  (branch: {branch}) ...")
+                parent = "/".join(target.rstrip("/").split("/")[:-1])
+                sudo_run(client, f"mkdir -p {parent}")
+                branch_flag = f"--branch {branch}" if branch != "main" else ""
+                out = sudo_run(client,
+                    f"{git_ssh} git clone {branch_flag} {clone_url} {target} 2>&1",
+                    timeout=60)
+                print(out or "Cloned OK")
         else:
             print(f"Updating {target} ...")
             out = sudo_run(client,
