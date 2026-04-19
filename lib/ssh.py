@@ -140,6 +140,9 @@ def sudo_run(client, command, timeout=30):
         shell.send(password + "\n")
         time.sleep(0.5)
         chunk = _read_until_prompt_or_password(shell, timeout=timeout)
+    elif not re.search(r"\$\s*$", chunk.rstrip()):
+        # Command still running (no shell prompt yet) — wait for full timeout
+        chunk += _read_until_prompt_or_password(shell, timeout=timeout)
 
     shell.close()
     # Strip ANSI escape codes and the trailing shell prompt

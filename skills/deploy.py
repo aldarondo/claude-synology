@@ -113,7 +113,8 @@ def main():
         else:
             print(f"Updating {target} ...")
             out = sudo_run(client,
-                f"sh -c 'cd {target} && {git_ssh} git pull 2>&1'", timeout=30)
+                f'sh -c "cd {target} && git reset --hard HEAD && git clean -fd && {git_ssh} git pull 2>&1"',
+                timeout=60)
             print(out or "Already up to date")
 
         # ── Step 3: Bootstrap .env if missing ─────────────────────────────────
@@ -136,9 +137,14 @@ def main():
             print(f"\nNo docker-compose.yml found in {target}. Skipping compose up.")
             return
 
+        print("\nPulling latest images ...")
+        out = sudo_run(client,
+            f'sh -c "cd {target} && {DOCKER} compose pull 2>&1"', timeout=180)
+        print(out)
+
         print("\nStarting containers ...")
         out = sudo_run(client,
-            f"sh -c 'cd {target} && {DOCKER} compose up -d 2>&1'", timeout=120)
+            f'sh -c "cd {target} && {DOCKER} compose up -d 2>&1"', timeout=180)
         print(out)
 
         # ── Step 5: Final state ────────────────────────────────────────────────

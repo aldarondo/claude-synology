@@ -78,11 +78,11 @@ All commands run via: `python skills/synology.py <command> [args]`
 ### Deployment
 | Command | Description |
 |---|---|
-| `deploy <repo-url> <path>` | Clone repo, bootstrap `.env`, run `docker compose up -d` |
-| `deploy <path> --update` | Pull latest commits + `docker compose up -d` |
+| `deploy <path> --update` | Pull latest images + `docker compose up -d` **(preferred — GHCR method)** |
+| `deploy <repo-url> <path>` | Clone repo, bootstrap `.env`, run `docker compose up -d` (git method) |
 | `edit-env <path> <KEY=VALUE> ...` | Set .env keys via SFTP — values never in shell history |
-| `setup-deploy-key` | Generate SSH deploy key on NAS for GitHub (run once) |
-| `add-deploy-key <owner/repo>` | Register NAS deploy key on a GitHub repo via `gh` CLI |
+| `setup-deploy-key` | Generate SSH deploy key on NAS for GitHub (git method only) |
+| `add-deploy-key <owner/repo>` | Register NAS deploy key on a GitHub repo via `gh` CLI (git method only) |
 
 ### Files & Shell
 | Command | Description |
@@ -108,7 +108,29 @@ lib/ssh.py               ← SSH client (paramiko, PTY sudo, stdin file writes)
 
 ## Private GitHub Repos
 
-SSH deploy keys are used — no tokens in config files or shell history.
+### Recommended: GHCR method (no deploy keys needed)
+
+Build your image in CI and push to `ghcr.io`. Your `compose.yml` on the NAS references the registry image directly — no source code on the NAS, no SSH keys required.
+
+```yaml
+# compose.yml on the NAS (place it manually or via edit-env)
+services:
+  app:
+    image: ghcr.io/owner/repo:latest
+    env_file: .env
+```
+
+```bash
+# Authenticate Docker to GHCR once (uses a GitHub PAT with read:packages scope)
+python skills/synology.py ssh "echo TOKEN | docker login ghcr.io -u USERNAME --password-stdin"
+
+# Pull latest image and restart
+python skills/synology.py deploy /volume1/docker/repo --update
+```
+
+### Alternative: Git clone method (SSH deploy keys)
+
+Use this when you need source code on the NAS (e.g. building images locally).
 
 ```bash
 # One-time NAS setup (generates the shared key, run once)
