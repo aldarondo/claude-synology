@@ -13,6 +13,9 @@
 - [ ] `[Human]` Add NAS deploy key to each new private GitHub repo before running `synology deploy` — or run `synology add-deploy-key <owner/repo>` to automate it
 
 ## ✅ Completed
+- 2026-04-18 `[Code]` `synology add-deploy-key` — rewrote to per-repo key strategy; generates `~/.ssh/github_deploy_<slug>`, adds SSH config Host alias, registers on GitHub via gh CLI; fixes "key already in use" error on multi-repo setups
+- 2026-04-18 `[Code]` `synology deploy` — fixed two Windows bugs: (1) Git Bash path mangling `/volume1/...` → `C:/Program Files/Git/volume1/...` via `fix_nas_path()` regex; (2) `sudo_run` using root's `~/.ssh/config` instead of user's — now passes explicit `GIT_SSH_COMMAND='ssh -F <home>/.ssh/config'` for host-alias URLs
+- 2026-04-18 `[Code]` Deployed claude-enphase to `/volume1/docker/claude-enphase` via `synology deploy git@github-claude-enphase:aldarondo/claude-enphase.git /volume1/docker/claude-enphase`; container running with scheduler active
 - 2026-04-13 `[Human]` Provide NAS IP, admin credentials, confirm DSM API access enabled
 - 2026-04-13 `[Code]` Implement `lib/auth.py` — POST-based SID session, auto-fix https on port 5000
 - 2026-04-13 `[Code]` Create `config.example.json` template

@@ -111,18 +111,21 @@ lib/ssh.py               ← SSH client (paramiko, PTY sudo, stdin file writes)
 SSH deploy keys are used — no tokens in config files or shell history.
 
 ```bash
-# One-time NAS setup (generates the key, run once)
+# One-time NAS setup (generates the shared key, run once)
 python skills/synology.py setup-deploy-key
 
-# Per-repo: register the NAS key on GitHub (replaces manual GitHub UI steps)
+# Per-repo: generate a per-repo NAS key, add SSH Host alias, register on GitHub
+# GitHub requires unique deploy keys per repo — this handles all of it automatically
 python skills/synology.py add-deploy-key owner/repo
 
-# Deploy
-python skills/synology.py deploy git@github.com:owner/repo.git /volume1/docker/repo
+# Deploy using the per-repo SSH host alias printed by add-deploy-key
+python skills/synology.py deploy git@github-repo:owner/repo.git /volume1/docker/repo
 
 # Update later
 python skills/synology.py deploy /volume1/docker/repo --update
 ```
+
+**Per-repo key strategy:** GitHub does not allow the same public key as a deploy key on more than one repo. `add-deploy-key` generates `~/.ssh/github_deploy_<slug>` key pairs on the NAS and adds a `Host github-<slug>` alias to `~/.ssh/config` so git automatically routes to the right key. The clone URL uses this alias (e.g. `git@github-claude-enphase:aldarondo/claude-enphase.git`).
 
 ## Testing
 
