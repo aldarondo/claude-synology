@@ -7,7 +7,7 @@ config.json SSH block:
     "ssh": {
       "host": "192.168.x.x",
       "port": 2222,
-      "username": "charles",
+      "username": "your-username",
       "password": "your-password"
     }
   }
