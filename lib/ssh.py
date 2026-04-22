@@ -19,6 +19,7 @@ Two run modes:
 
 import json
 import os
+import shlex
 import time
 import re
 import paramiko
@@ -31,13 +32,28 @@ DOCKER = "/usr/local/bin/docker"
 
 
 def load_ssh_config():
-    with open(CONFIG_PATH) as f:
-        cfg = json.load(f)
+    try:
+        with open(CONFIG_PATH) as f:
+            cfg = json.load(f)
+    except FileNotFoundError:
+        raise RuntimeError(
+            f"config.json not found at {CONFIG_PATH}.\n"
+            "Copy config.example.json to config.json and fill in your NAS details."
+        )
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"config.json is not valid JSON: {exc}")
+
     ssh = cfg.get("ssh")
     if not ssh:
         raise RuntimeError(
             "No 'ssh' block in config.json.\n"
             'Add: "ssh": {"host":"192.168.x.x","port":2222,"username":"charles","password":"..."}'
+        )
+    required = {"host", "username"}
+    missing = required - ssh.keys()
+    if missing:
+        raise RuntimeError(
+            f"config.json ssh block is missing required keys: {', '.join(sorted(missing))}"
         )
     return ssh
 
@@ -84,7 +100,8 @@ def sftp_read(client, remote_path):
     Falls back to sudo cat for root-owned files.
     Raises FileNotFoundError if the file doesn't exist.
     """
-    stdin, stdout, stderr = client.exec_command(f"cat {remote_path}")
+    safe = shlex.quote(remote_path)
+    stdin, stdout, stderr = client.exec_command(f"cat {safe}")
     code = stdout.channel.recv_exit_status()
     out  = stdout.read().decode("utf-8", errors="replace")
     err  = stderr.read().decode("utf-8", errors="replace").strip()
@@ -92,7 +109,7 @@ def sftp_read(client, remote_path):
         if "No such file" in err or "not found" in err.lower():
             raise FileNotFoundError(f"{remote_path}: {err}")
         # Try sudo for root-owned files
-        out = sudo_run(client, f"cat {remote_path} 2>&1")
+        out = sudo_run(client, f"cat {safe} 2>&1")
         if "No such file" in out or "Permission denied" in out:
             raise FileNotFoundError(f"{remote_path}: {out.strip()}")
     return out
@@ -107,7 +124,7 @@ def sftp_write(client, remote_path, content):
     import time as _time
     tmp = f"/tmp/.nas_write_{int(_time.time() * 1000)}"
     # Pipe content to tmp (user-writable, no sudo needed)
-    stdin, stdout, stderr = client.exec_command(f"cat > {tmp}")
+    stdin, stdout, stderr = client.exec_command(f"cat > {tmp}", timeout=30)
     stdin.write(content.encode("utf-8"))
     stdin.channel.shutdown_write()
     code = stdout.channel.recv_exit_status()
@@ -115,7 +132,7 @@ def sftp_write(client, remote_path, content):
         err = stderr.read().decode("utf-8", errors="replace").strip()
         raise IOError(f"Failed to stage file in /tmp: {err}")
     # Move to final destination (sudo for root-owned paths)
-    sudo_run(client, f"mv {tmp} {remote_path}")
+    sudo_run(client, f"mv {tmp} {shlex.quote(remote_path)}")
 
 
 def sudo_run(client, command, timeout=30):

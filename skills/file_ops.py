@@ -14,6 +14,7 @@ Examples:
   file_ops.py delete /volume1/docker/brian-mcp/old-file.log
 """
 
+import shlex
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -52,7 +53,7 @@ def main():
                 print(content, end="")
             except (FileNotFoundError, IOError):
                 # Fall back to sudo cat for root-owned files
-                out = sudo_run(client, f"cat {path} 2>&1")
+                out = sudo_run(client, f"cat {shlex.quote(path)} 2>&1")
                 if "No such file" in out or "Permission denied" in out:
                     print(f"Error: {out}", file=sys.stderr)
                     sys.exit(1)
@@ -64,7 +65,7 @@ def main():
         path = rest[0] if rest else "."
         client = get_client()
         try:
-            out = sudo_run(client, f"ls -lh {path} 2>&1")
+            out = sudo_run(client, f"ls -lh {shlex.quote(path)} 2>&1")
             print(out)
         finally:
             client.close()
@@ -76,7 +77,7 @@ def main():
         path = rest[0]
         client = get_client()
         try:
-            _, _, code = run(client, f"test -e {path}")
+            _, _, code = run(client, f"test -e {shlex.quote(path)}")
             if code == 0:
                 print(f"EXISTS: {path}")
                 sys.exit(0)
@@ -101,7 +102,7 @@ def main():
 
         client = get_client()
         try:
-            out = sudo_run(client, f"rm {path} 2>&1")
+            out = sudo_run(client, f"rm {shlex.quote(path)} 2>&1")
             if out:
                 print(out)
             else:

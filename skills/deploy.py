@@ -17,6 +17,7 @@ Steps:
   5. docker compose ps (show final state)
 """
 
+import shlex
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -95,8 +96,10 @@ def main():
             # Explicitly pass the user's ssh config so sudo uses the right Host alias
             git_ssh = f"GIT_SSH_COMMAND='ssh -F {ssh_config} -o StrictHostKeyChecking=accept-new'"
 
+        safe_target = shlex.quote(target)
+
         # ── Step 1/2: Clone or pull ────────────────────────────────────────────
-        out = sudo_run(client, f"test -d {target}/.git && echo EXISTS || echo MISSING")
+        out = sudo_run(client, f"test -d {safe_target}/.git && echo EXISTS || echo MISSING")
 
         if "MISSING" in out:
             if update_only:
@@ -104,27 +107,28 @@ def main():
             else:
                 print(f"Cloning {repo_url}\n  -> {target}  (branch: {branch}) ...")
                 parent = "/".join(target.rstrip("/").split("/")[:-1])
-                sudo_run(client, f"mkdir -p {parent}")
-                branch_flag = f"--branch {branch}" if branch != "main" else ""
+                safe_parent = shlex.quote(parent)
+                sudo_run(client, f"mkdir -p {safe_parent}")
+                branch_flag = f"--branch {shlex.quote(branch)}" if branch != "main" else ""
                 out = sudo_run(client,
-                    f"{git_ssh} git clone {branch_flag} {clone_url} {target} 2>&1",
+                    f"{git_ssh} git clone {branch_flag} {shlex.quote(clone_url)} {safe_target} 2>&1",
                     timeout=60)
                 print(out or "Cloned OK")
         else:
             print(f"Updating {target} ...")
             out = sudo_run(client,
-                f'sh -c "cd {target} && git reset --hard HEAD && git clean -fd && {git_ssh} git pull 2>&1"',
+                f'sh -c "cd {safe_target} && git reset --hard HEAD && git clean -fd && {git_ssh} git pull 2>&1"',
                 timeout=60)
             print(out or "Already up to date")
 
         # ── Step 3: Bootstrap .env if missing ─────────────────────────────────
         out = sudo_run(client,
-            f"test -f {target}/.env.example && echo HAS_EXAMPLE || echo NO_EXAMPLE")
+            f"test -f {safe_target}/.env.example && echo HAS_EXAMPLE || echo NO_EXAMPLE")
         if "HAS_EXAMPLE" in out:
             out2 = sudo_run(client,
-                f"test -f {target}/.env && echo HAS_ENV || echo NO_ENV")
+                f"test -f {safe_target}/.env && echo HAS_ENV || echo NO_ENV")
             if "NO_ENV" in out2:
-                sudo_run(client, f"cp {target}/.env.example {target}/.env")
+                sudo_run(client, f"cp {safe_target}/.env.example {safe_target}/.env")
                 print(f"\nCreated {target}/.env from .env.example")
                 print(f"  >> Edit {target}/.env to fill in any required secrets before proceeding.")
             else:
@@ -132,25 +136,25 @@ def main():
 
         # ── Step 4: docker compose up -d ──────────────────────────────────────
         out = sudo_run(client,
-            f"test -f {target}/docker-compose.yml -o -f {target}/compose.yml && echo OK || echo MISSING")
+            f"test -f {safe_target}/docker-compose.yml -o -f {safe_target}/compose.yml && echo OK || echo MISSING")
         if "MISSING" in out:
             print(f"\nNo docker-compose.yml found in {target}. Skipping compose up.")
             return
 
         print("\nPulling latest images ...")
         out = sudo_run(client,
-            f'sh -c "cd {target} && {DOCKER} compose pull 2>&1"', timeout=180)
+            f'sh -c "cd {safe_target} && {DOCKER} compose pull 2>&1"', timeout=180)
         print(out)
 
         print("\nStarting containers ...")
         out = sudo_run(client,
-            f'sh -c "cd {target} && {DOCKER} compose up -d 2>&1"', timeout=180)
+            f'sh -c "cd {safe_target} && {DOCKER} compose up -d 2>&1"', timeout=180)
         print(out)
 
         # ── Step 5: Final state ────────────────────────────────────────────────
         print("\nContainer status:")
         out = sudo_run(client,
-            f"sh -c 'cd {target} && {DOCKER} compose ps 2>&1'")
+            f"sh -c 'cd {safe_target} && {DOCKER} compose ps 2>&1'")
         print(out)
 
     finally:

@@ -11,18 +11,46 @@ Credentials are sent via POST body, not URL params.
 """
 
 import json
+import logging
 import os
 import requests
 import urllib3
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config.json")
+
+logger = logging.getLogger(__name__)
+
+REQUIRED_KEYS = {"host", "username", "password"}
 
 
 def load_config():
-    with open(CONFIG_PATH) as f:
-        return json.load(f)
+    try:
+        with open(CONFIG_PATH) as f:
+            cfg = json.load(f)
+    except FileNotFoundError:
+        raise RuntimeError(
+            f"config.json not found at {CONFIG_PATH}.\n"
+            "Copy config.example.json to config.json and fill in your NAS details."
+        )
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"config.json is not valid JSON: {exc}")
+
+    missing = REQUIRED_KEYS - cfg.keys()
+    if missing:
+        raise RuntimeError(
+            f"config.json is missing required keys: {', '.join(sorted(missing))}\n"
+            "Required: host, username, password"
+        )
+    return cfg
+
+
+def _get_verify():
+    """Return verify_ssl from config, defaulting to False on any read error."""
+    try:
+        with open(CONFIG_PATH) as f:
+            return json.load(f).get("verify_ssl", False)
+    except Exception:
+        return False
 
 
 def _fix_host(host):
@@ -43,6 +71,9 @@ def get_session():
     cfg = load_config()
     host = _fix_host(cfg["host"].rstrip("/"))
     verify = cfg.get("verify_ssl", False)
+
+    if not verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     data = {
         "api": "SYNO.API.Auth",
@@ -69,6 +100,7 @@ def get_session():
 
 def logout(host, sid):
     """Invalidate the session."""
+    verify = _get_verify()
     try:
         requests.post(
             f"{host}/webapi/auth.cgi",
@@ -79,18 +111,19 @@ def logout(host, sid):
                 "session": "ClaudeSession",
                 "_sid": sid,
             },
-            verify=False,
+            verify=verify,
             timeout=5,
         )
-    except Exception:
-        pass  # best-effort logout
+    except Exception as exc:
+        logger.warning("Session logout failed (best-effort): %s", exc)
 
 
 def api_get(host, sid, api, version, method, **extra):
     """Convenience wrapper for DSM API GET calls."""
+    verify = _get_verify()
     params = {"api": api, "version": version, "method": method, "_sid": sid}
     params.update(extra)
-    resp = requests.get(f"{host}/webapi/entry.cgi", params=params, verify=False)
+    resp = requests.get(f"{host}/webapi/entry.cgi", params=params, verify=verify)
     resp.raise_for_status()
     return resp.json()
 

@@ -44,7 +44,7 @@ def main():
             ghcr = cfg.get("ghcr", {})
             username = username or ghcr.get("username")
             token = token or ghcr.get("token")
-        except Exception:
+        except (FileNotFoundError, json.JSONDecodeError):
             pass
 
     if not username or not token:

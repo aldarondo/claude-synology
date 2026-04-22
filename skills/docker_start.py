@@ -7,23 +7,11 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import requests
 from lib.auth import get_session, logout, api_get
 
 
 def start_container(host, sid, name):
-    resp = requests.get(
-        f"{host}/webapi/entry.cgi",
-        params={
-            "api": "SYNO.Docker.Container",
-            "version": "1",
-            "method": "start",
-            "name": name,
-            "_sid": sid,
-        },
-        verify=False,
-    )
-    return resp.json()
+    return api_get(host, sid, "SYNO.Docker.Container", "1", "start", name=name)
 
 
 def main():

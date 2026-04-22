@@ -168,6 +168,23 @@ python tests/test_ssh_integration.py
 
 Current status: **29/29 unit** · **20/20 HTTP integration** · **23/23 SSH integration**
 
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `config.json not found` | Missing config file | Copy `config.example.json` → `config.json` and fill in values |
+| `config.json is missing required keys` | Incomplete config | Add `host`, `username`, `password` to config.json |
+| `Auth failed (code 400)` | Wrong credentials or DSM version mismatch | Verify username/password in DSM > Control Panel > User |
+| `Auth failed (code 403)` | Account locked or 2FA enabled | Disable 2FA for the API user in DSM |
+| `ConnectionRefusedError` on HTTP | Wrong port or firewall | Use port 5000 for HTTP, 5001 for HTTPS; check DSM firewall |
+| `No 'ssh' block in config.json` | Missing SSH config | Add the `"ssh"` block as shown in Configuration above |
+| SSH `Authentication failed` | Wrong SSH credentials | Verify SSH username/password; ensure SSH is enabled in DSM Terminal & SNMP |
+| `docker logs` shows API error 114 | Compose container — HTTP API doesn't support it | Normal: auto-falls back to SSH |
+| `docker compose up` hangs at 120s | PTY timeout on large image pull | Run `docker compose pull` first, then `up` |
+| `No docker-compose.yml found` | Wrong path or filename | Use `file list <path>` to verify; DSM accepts both `compose.yml` and `docker-compose.yml` |
+| `git clone` fails with `Permission denied (publickey)` | Deploy key not registered | Run `synology add-deploy-key owner/repo` first |
+| SSL warnings in output | `verify_ssl: false` in config (default for self-signed certs) | Expected — set `verify_ssl: true` if your NAS has a valid cert |
+
 ## Known Limitations
 
 | Issue | Status |

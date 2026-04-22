@@ -23,7 +23,12 @@ def main():
         if args[i] == "--level" and i + 1 < len(args):
             level = args[i + 1]; i += 2
         elif args[i] == "--lines" and i + 1 < len(args):
-            lines = int(args[i + 1]); i += 2
+            try:
+                lines = int(args[i + 1])
+            except ValueError:
+                print(f"--lines requires an integer, got: {args[i + 1]}")
+                sys.exit(1)
+            i += 2
         elif args[i] == "--type" and i + 1 < len(args):
             logtype = args[i + 1]; i += 2
         else:

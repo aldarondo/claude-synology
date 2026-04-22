@@ -13,6 +13,7 @@ Usage:
   docker_compose.py /volume1/docker/brian-mcp restart   (requires YES)
 """
 
+import shlex
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -32,6 +33,7 @@ def main():
     path         = sys.argv[1]
     action       = sys.argv[2].lower()
     skip_confirm = "--yes" in sys.argv
+    safe_path    = shlex.quote(path)
 
     if action in DESTRUCTIVE and not skip_confirm:
         confirm = input(f"Run 'docker compose {action}' in {path}? Type YES to confirm: ")
@@ -42,31 +44,31 @@ def main():
     client = get_client()
     try:
         # Verify the path exists
-        out = sudo_run(client, f"test -d {path} && echo EXISTS || echo MISSING")
+        out = sudo_run(client, f"test -d {safe_path} && echo EXISTS || echo MISSING")
         if "MISSING" in out:
             print(f"Directory not found on NAS: {path}")
             sys.exit(1)
 
         # Verify compose file exists
         out = sudo_run(client,
-            f"test -f {path}/docker-compose.yml -o -f {path}/compose.yml && echo OK || echo MISSING")
+            f"test -f {safe_path}/docker-compose.yml -o -f {safe_path}/compose.yml && echo OK || echo MISSING")
         if "MISSING" in out:
             print(f"No docker-compose.yml found in {path}")
             sys.exit(1)
 
         # Build and run the command
         if action == "up":
-            cmd = f"sh -c 'cd {path} && {DOCKER} compose up -d'"
+            cmd = f"sh -c 'cd {safe_path} && {DOCKER} compose up -d'"
         elif action == "down":
-            cmd = f"sh -c 'cd {path} && {DOCKER} compose down'"
+            cmd = f"sh -c 'cd {safe_path} && {DOCKER} compose down'"
         elif action == "pull":
-            cmd = f"sh -c 'cd {path} && {DOCKER} compose pull'"
+            cmd = f"sh -c 'cd {safe_path} && {DOCKER} compose pull'"
         elif action == "logs":
-            cmd = f"sh -c 'cd {path} && {DOCKER} compose logs --tail={LOG_LINES}'"
+            cmd = f"sh -c 'cd {safe_path} && {DOCKER} compose logs --tail={LOG_LINES}'"
         elif action == "ps":
-            cmd = f"sh -c 'cd {path} && {DOCKER} compose ps'"
+            cmd = f"sh -c 'cd {safe_path} && {DOCKER} compose ps'"
         elif action == "restart":
-            cmd = f"sh -c 'cd {path} && {DOCKER} compose restart'"
+            cmd = f"sh -c 'cd {safe_path} && {DOCKER} compose restart'"
         else:
             print(f"Unknown action: {action}")
             sys.exit(1)

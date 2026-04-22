@@ -5,36 +5,25 @@ synology docker logs <container-name> [--lines N]
   (Container Manager 24.x does not support the log API for Compose containers).
 """
 
+import shlex
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import requests
-from lib.auth import get_session, logout
+from lib.auth import get_session, logout, api_get
 from lib.ssh import get_client, sudo_run, DOCKER
 
 
 def get_logs_api(host, sid, name, lines):
-    resp = requests.get(
-        f"{host}/webapi/entry.cgi",
-        params={
-            "api": "SYNO.Docker.Container.Log",
-            "version": "1",
-            "method": "get",
-            "name": name,
-            "tail": lines,
-            "_sid": sid,
-        },
-        verify=False,
-    )
-    return resp.json()
+    return api_get(host, sid, "SYNO.Docker.Container.Log", "1", "get",
+                   name=name, tail=lines)
 
 
 def get_logs_ssh(name, lines):
     client = get_client()
     try:
         out = sudo_run(client,
-            f"{DOCKER} logs --tail={lines} {name} 2>&1",
+            f"{DOCKER} logs --tail={lines} {shlex.quote(name)} 2>&1",
             timeout=30)
         return out
     finally:
@@ -49,8 +38,12 @@ def main():
     name  = sys.argv[1]
     lines = 50
     if "--lines" in sys.argv:
-        idx   = sys.argv.index("--lines")
-        lines = int(sys.argv[idx + 1])
+        idx = sys.argv.index("--lines")
+        try:
+            lines = int(sys.argv[idx + 1])
+        except (IndexError, ValueError):
+            print(f"--lines requires an integer, got: {sys.argv[idx + 1] if idx + 1 < len(sys.argv) else '(missing)'}")
+            sys.exit(1)
 
     host, sid = get_session()
     try:
