@@ -5,8 +5,11 @@ Run: python -m pytest tests/test_unit.py -v
      python tests/test_unit.py          (unittest runner)
 """
 
-import sys
+import json
 import os
+import shlex
+import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -167,6 +170,140 @@ class TestClean(unittest.TestCase):
     def test_clean_output_unchanged(self):
         text = "NAME\tSTATUS\nollama\tUp 9 days"
         self.assertEqual(_clean(text), text)
+
+
+# ── lib/auth.py load_config validation ───────────────────────────────────────
+
+class TestLoadConfig(unittest.TestCase):
+
+    def _write_config(self, data, tmp_dir):
+        path = os.path.join(tmp_dir, "config.json")
+        with open(path, "w") as f:
+            json.dump(data, f)
+        return path
+
+    def test_valid_config_loads(self):
+        import lib.auth as auth
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_config(
+                {"host": "http://nas:5000", "username": "admin", "password": "pw"}, d)
+            orig = auth.CONFIG_PATH
+            auth.CONFIG_PATH = path
+            try:
+                cfg = auth.load_config()
+                self.assertEqual(cfg["username"], "admin")
+            finally:
+                auth.CONFIG_PATH = orig
+
+    def test_missing_file_raises_helpful_error(self):
+        import lib.auth as auth
+        orig = auth.CONFIG_PATH
+        auth.CONFIG_PATH = "/nonexistent/config.json"
+        try:
+            with self.assertRaises(RuntimeError) as ctx:
+                auth.load_config()
+            self.assertIn("config.json not found", str(ctx.exception))
+            self.assertIn("config.example.json", str(ctx.exception))
+        finally:
+            auth.CONFIG_PATH = orig
+
+    def test_invalid_json_raises_helpful_error(self):
+        import lib.auth as auth
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "config.json")
+            with open(path, "w") as f:
+                f.write("{not valid json")
+            orig = auth.CONFIG_PATH
+            auth.CONFIG_PATH = path
+            try:
+                with self.assertRaises(RuntimeError) as ctx:
+                    auth.load_config()
+                self.assertIn("not valid JSON", str(ctx.exception))
+            finally:
+                auth.CONFIG_PATH = orig
+
+    def test_missing_required_keys_raises_helpful_error(self):
+        import lib.auth as auth
+        with tempfile.TemporaryDirectory() as d:
+            path = self._write_config({"host": "http://nas:5000"}, d)
+            orig = auth.CONFIG_PATH
+            auth.CONFIG_PATH = path
+            try:
+                with self.assertRaises(RuntimeError) as ctx:
+                    auth.load_config()
+                self.assertIn("missing required keys", str(ctx.exception))
+            finally:
+                auth.CONFIG_PATH = orig
+
+
+# ── --lines argument validation ───────────────────────────────────────────────
+
+class TestLinesArgValidation(unittest.TestCase):
+
+    def _run_main_with_args(self, module_path, argv, monkeypatch_fn=None):
+        """Run a skill's main() with given sys.argv, capturing SystemExit."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("skill", module_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        orig_argv = sys.argv[:]
+        sys.argv = argv
+        try:
+            mod.main()
+        except SystemExit as exc:
+            return exc.code
+        finally:
+            sys.argv = orig_argv
+        return 0
+
+    def test_logs_lines_invalid_exits_nonzero(self):
+        import io
+        from contextlib import redirect_stdout
+        skill = os.path.join(os.path.dirname(__file__), "..", "skills", "logs.py")
+        # Patch get_session to avoid real network call
+        import lib.auth as auth
+        orig = getattr(auth, "get_session", None)
+        # We expect sys.exit(1) before any network call when --lines is invalid
+        orig_argv = sys.argv[:]
+        sys.argv = ["logs.py", "--lines", "abc"]
+        buf = io.StringIO()
+        try:
+            with redirect_stdout(buf):
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("logs_skill",
+                    os.path.join(os.path.dirname(__file__), "..", "skills", "logs.py"))
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                with self.assertRaises(SystemExit) as ctx:
+                    mod.main()
+                self.assertEqual(ctx.exception.code, 1)
+                self.assertIn("integer", buf.getvalue())
+        finally:
+            sys.argv = orig_argv
+
+
+# ── shlex quoting correctness ─────────────────────────────────────────────────
+
+class TestShlexQuoting(unittest.TestCase):
+
+    def test_normal_path_unchanged_when_unquoted(self):
+        path = "/volume1/docker/myapp"
+        # shlex.quote wraps in single quotes only when needed; round-trip is identity
+        self.assertEqual(shlex.split(shlex.quote(path))[0], path)
+
+    def test_path_with_spaces_quoted_safely(self):
+        path = "/volume1/docker/my app"
+        quoted = shlex.quote(path)
+        # Must parse as a single token containing the full path (space inside quotes)
+        self.assertEqual(len(shlex.split(quoted)), 1)
+        self.assertEqual(shlex.split(quoted)[0], path)
+
+    def test_path_with_special_chars_quoted_safely(self):
+        path = "/volume1/docker/test;rm -rf /"
+        quoted = shlex.quote(path)
+        # Must not split into multiple tokens
+        self.assertEqual(len(shlex.split(quoted)), 1)
+        self.assertEqual(shlex.split(quoted)[0], path)
 
 
 if __name__ == "__main__":

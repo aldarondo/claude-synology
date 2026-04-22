@@ -82,6 +82,7 @@ def ensure_repo_key(client, home, slug):
     if code != 0:
         print(f"ERROR: ssh-keygen failed:\n{out}")
         sys.exit(1)
+    run(client, f"chmod 600 {key_path}")
     pubkey, _, _ = run(client, f"cat {key_path}.pub")
     return key_path, pubkey.strip()
 

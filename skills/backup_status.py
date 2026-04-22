@@ -17,7 +17,7 @@ def fmt_ts(ts):
         return "never"
     try:
         return datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d %H:%M")
-    except Exception:
+    except (ValueError, OSError, OverflowError):
         return str(ts)
 
 
