@@ -160,11 +160,11 @@ def main():
             return
 
     # Register on GitHub
-    print(f"  Registering deploy key on GitHub ...")
+    print("  Registering deploy key on GitHub ...")
     result = gh_api("POST", f"/repos/{repo}/keys",
                     title=title, key=pubkey, read_only=True)
     if result.returncode != 0:
-        print(f"ERROR: failed to add deploy key")
+        print("ERROR: failed to add deploy key")
         print(gh_error_detail(result))
         sys.exit(1)
 

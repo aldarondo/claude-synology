@@ -17,12 +17,11 @@ Test categories:
 
 import sys
 import os
-import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from lib.ssh import get_client, run, run_checked, sudo_run, sftp_read, sftp_write
-from skills.edit_env import parse_env, update_env
+from skills.edit_env import update_env
 
 VERBOSE = "--verbose" in sys.argv
 
@@ -155,7 +154,6 @@ def test_edit_env(client):
     def t_create_new():
         # Start from scratch
         run(client, f"rm -f {env_file}")
-        from skills.edit_env import update_env
         sftp_write(client, env_file, update_env("", {"TOKEN": "abc", "PORT": "8080"}))
         content = sftp_read(client, env_file)
         assert "TOKEN=abc" in content
@@ -164,7 +162,6 @@ def test_edit_env(client):
 
     def t_update_existing():
         sftp_write(client, env_file, "TOKEN=old\nPORT=8080\n")
-        from skills.edit_env import update_env
         current = sftp_read(client, env_file)
         sftp_write(client, env_file, update_env(current, {"TOKEN": "new"}))
         content = sftp_read(client, env_file)
@@ -175,7 +172,6 @@ def test_edit_env(client):
 
     def t_append_key():
         sftp_write(client, env_file, "EXISTING=yes\n")
-        from skills.edit_env import update_env
         current = sftp_read(client, env_file)
         sftp_write(client, env_file, update_env(current, {"NEW_KEY": "hello"}))
         content = sftp_read(client, env_file)
@@ -293,7 +289,7 @@ def run_all():
     print(f"  Results: {passed}/{total} passed  |  {skipped} skipped")
 
     if failed:
-        print(f"\n  FAILURES:")
+        print("\n  FAILURES:")
         for status, cat, label, detail in results:
             if status == "FAIL":
                 print(f"    [{cat}] {label}: {detail}")
