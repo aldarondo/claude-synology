@@ -51,7 +51,7 @@ def main():
         net = u.get("network", [])
         ifaces = [n for n in net if n.get("device") != "total"]
         if ifaces:
-            print(f"\n  Network:")
+            print("\n  Network:")
             for iface in ifaces:
                 rx = bytes_per_sec(iface.get("rx", 0))
                 tx = bytes_per_sec(iface.get("tx", 0))

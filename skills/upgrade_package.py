@@ -59,7 +59,7 @@ def main():
             print("  " + "-" * 80)
             for p in sorted(user_pkgs, key=lambda x: x.get("name", "").lower()):
                 print(f"  {p.get('id','?'):<30} {p.get('name','?'):<35} {p.get('version','?')}")
-            print(f"\nTo upgrade: python skills/upgrade_package.py <id>")
+            print("\nTo upgrade: python skills/upgrade_package.py <id>")
             return
 
         if not skip_confirm:

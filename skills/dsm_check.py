@@ -34,7 +34,7 @@ def main():
                 if notes:
                     print(f"      Release notes: {notes}")
             else:
-                print(f"\n  OK  DSM is up to date.")
+                print("\n  OK  DSM is up to date.")
         else:
             code = upgrade.get("error", {}).get("code", "?")
             print(f"\n  Update check failed (error {code}).")

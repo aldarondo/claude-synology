@@ -19,7 +19,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import requests
-from lib.auth import get_session, logout, api_get
+from lib.auth import get_session, logout
 
 
 def search_catalog(host, sid, query, limit=50):
@@ -142,7 +142,7 @@ def main():
         else:
             code = result.get("error", {}).get("code", "?")
             if code == 120:
-                print(f"Package not available for automated install (error 120).")
+                print("Package not available for automated install (error 120).")
                 print("This package may require the DSM UI or a MyDS account.")
             else:
                 print(f"Install failed (error {code}).")

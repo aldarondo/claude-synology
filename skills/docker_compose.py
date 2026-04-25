@@ -18,7 +18,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from lib.ssh import get_client, run, sudo_run, DOCKER
+from lib.ssh import get_client, sudo_run, DOCKER
 
 DESTRUCTIVE = {"down", "restart"}
 LOG_LINES   = 50

@@ -179,7 +179,7 @@ def run():
     print(f"  Results: {passed}/{total} passed  |  {skipped} skipped (known broken)")
 
     if failed:
-        print(f"\n  FAILURES:")
+        print("\n  FAILURES:")
         for status, cat, label, detail in results:
             if status == "FAIL":
                 print(f"    [{cat}] {label}: {detail}")
